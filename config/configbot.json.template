@@ -1,0 +1,49 @@
+{    
+    "telegram": {
+    "token": "AQUI_VA_EL_TOKEN_DE_TU_BOT",
+    "authorized_users": [
+      123456789,
+      987654321
+    ]
+  },
+  "image_directory": "/opt/telegram_bot/data/imagenes",
+  "file_directory": "/opt/telegram_bot/data/ficheros",
+  "scripts_permitidos": {
+    "actualizar_sistema": "/opt/telegram_bot/scripts/update.sh",
+    "backup_db": "/opt/telegram_bot/scripts/backup_database.sh"
+  },
+  "python_scripts_permitidos": {
+    "limpiar_logs": "/opt/telegram_bot/scripts/cleanup.py"
+  },
+  "servicios_permitidos": [
+    "nginx",
+    "postgresql",
+    "sshd",
+    "fail2ban",
+    "docker"
+  ],
+  "servidores": [
+    {
+      "nombre": "Servidor Local",
+      "host": "localhost",
+      "chequeos": {
+        "ping": true
+      }
+    },
+    {
+      "nombre": "Sitio Web Principal",
+      "host": "tudominio.com",
+      "chequeos": {
+        "ping": true,
+        "puertos": {
+          "HTTPS": 443,
+          "SSH": 22
+        },
+        "certificado_ssl": {
+          "puerto": 443,
+          "dias_aviso": 30
+        }
+      }
+    }
+  ]
+}
