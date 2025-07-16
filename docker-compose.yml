@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    # Construye la imagen a partir del Dockerfile en el directorio actual
+    build: .
+    # Nombre amigable para el contenedor en ejecución
+    container_name: telegram-admin-bot
+    # Reinicia el contenedor automáticamente a menos que se detenga manualmente
+    restart: unless-stopped
+    # Comparte el PID del host para que psutil pueda leer los recursos reales del sistema
+    pid: "host"
+    volumes:
+      # Monta el fichero de configuración local dentro del contenedor (solo lectura)
+      - ./config/config.json:/app/config.json:ro
+      # Monta el fichero de log para que persista en el host
+      - ./bot.log:/app/bot.log
+      # Monta los directorios de datos para poder subir y bajar archivos
+      - ./data/imagenes:/app/data/imagenes
+      - ./data/ficheros:/app/data/ficheros
