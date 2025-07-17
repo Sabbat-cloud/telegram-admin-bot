@@ -1,14 +1,3 @@
 python-telegram-bot
 psutil
-json
-socket
-subprocess
-platform
-re
-datetime
-logging
-os
-sys
-ssl
-functools
 telegram
