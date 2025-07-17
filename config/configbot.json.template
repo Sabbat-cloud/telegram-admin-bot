@@ -1,10 +1,13 @@
 {    
     "telegram": {
     "token": "AQUI_VA_EL_TOKEN_DE_TU_BOT",
+    "chat_id": "TU_CHAT_ID",
+    "super_admin_id": 123456789
     "authorized_users": [
       123456789,
       987654321
-    ]
+    ],
+    "enviar_reporte_periodico": false
   },
   "image_directory": "/opt/telegram_bot/data/imagenes",
   "file_directory": "/opt/telegram_bot/data/ficheros",
