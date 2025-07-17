@@ -1,0 +1,78 @@
+1.- Gestión de Procesos
+Listar procesos en ejecución: Un comando para mostrar los procesos activos (similar a top o htop).
+
+Matar procesos: Permitir terminar procesos por PID o nombre.
+
+Monitoreo de servicios críticos: Alertar si un servicio crítico se detiene.
+
+2.- Gestión de Logs
+Visualización de logs: Permitir leer logs del sistema (ej: /logs syslog 10 para ver las últimas 10 líneas del syslog).
+
+Búsqueda en logs: Buscar patrones en logs (ej: /logs search "error").
+
+3.- Soporte para comandos personalizados
+Permitir al superadmin definir comandos personalizados directamente desde Telegram.
+Ejemplo :
+
+/addcmd "mi_comando" "echo 'Hola desde el bot'"
+/runcmd "mi_comando"
+
+4.- Backups Automáticos
+Programar backups: Permitir crear backups de directorios importantes y enviarlos por Telegram o guardarlos en una ubicación específica.
+ejemplo:
+/backup /home/sabbat/telegram
+
+Restaurar backups: Opción para restaurar archivos desde un backup.
+
+5.- Notificaciones Proactivas
+Alertas automáticas: Configurar umbrales para CPU, RAM, disco, etc., y enviar alertas cuando se superen.
+
+Notificaciones de actualizaciones: Verificar actualizaciones de paquetes y notificar si hay disponibles.
+
+6.- Gestión de Usuarios Avanzada
+Listar usuarios autorizados: Un comando para ver todos los usuarios autorizados.
+
+Permisos por roles: Diferenciar entre usuarios normales y administradores con distintos niveles de acceso.
+
+7.- Seguridad
+Verificación de integridad de archivos: Comparar hashes de archivos críticos para detectar modificaciones no autorizadas.
+
+Escaneo de puertos locales: Verificar puertos abiertos en el servidor local.
+
+8.- Comandos Adicionales
+Espacio en disco: Mostrar un resumen detallado del uso de disco por particiones (df -h).
+
+Uso de red: Mostrar estadísticas de red (ej: iftop o nload).
+
+Información del sistema: Detalles como versión del kernel, distribución, etc.
+
+9.- Soporte para múltiples configuraciones
+Permitir cargar diferentes archivos de configuración (ej. configbot_prod.json, configbot_dev.json) desde el bot.
+Cómo implementarlo :
+Añadir un menú en la sección de administración para seleccionar la configuración activa.
+
+10.- Soporte para ejecutar comandos de forma remota
+Agregar un comando /exec que permita ejecutar comandos arbitrarios en el sistema (solo para superadmin y con confirmación).
+Ejemplo :
+
+/exec "ls -la /home"
+Bien restringido y con logs detallados por seguridad.
+
+11.- Soporte para Docker
+Agregar comandos para monitorear contenedores Docker (estado, logs, reiniciar, etc.).
+Ejemplo :
+
+/docker ps
+/docker logs <nombre_contenedor>
+
+12.- Soporte para múltiples idiomas
+DAgregar una opción en la configuración para cambiar el idioma del bot (ej. español, inglés, francés).
+
+13.- Miscelanea de utildiades, jpg2ascii con  jp2a, el tiempo con ansiweather fortunes etc.
+
+No prioritario (ya veremos.. tal vez..son 4 pipas y ya me pongo...) 
+
+1.- Soporte para APIs externas
+Servicios de monitoreo externo (ej. UptimeRobot, Pushover).
+
+2.- Webhooks: Permitir recibir notificaciones externas (ej: alertas de Jenkins, GitHub, etc.).
