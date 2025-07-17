@@ -29,6 +29,8 @@ Gestión de Archivos:
 
 Sube archivos o imágenes directamente al servidor arrastrándolos al chat.
 
+Con la instalación se generan dos directorios . Por defecto `/images` y `/files` . Cualquier imagen que pongas en el bot se guardara en `images` y el resto de adjuntos en `files`. Puedes personalizar donde guardar los ficheros en la configuración 
+
 Descarga archivos del servidor al chat con un simple comando.
 
 🛠️ Herramientas de Red
@@ -82,37 +84,6 @@ Crea tu bot en Telegram: Habla con @BotFather para crear un nuevo bot. Guarda el
 Obtén tu ID de Telegram: Habla con @userinfobot para saber tu ID de usuario numérico.
 
 Configura configbot.json: Renombra configbot.example.json a configbot.json y edítalo con tu información.
-
-`{
-  "telegram": {
-    "token": "TU_TOKEN_AQUI",
-    "super_admin_id": 123456789,
-    "authorized_users": [
-      123456789
-    ]
-  },
-  "image_directory": "/home/usuario/telegram/imagenes",
-  "file_directory": "/home/usuario/telegram/ficheros",
-  "scripts_permitidos": {
-    "mi_script": "/ruta/a/mi_script.sh"
-  },
-  "servidores": [
-    {
-      "nombre": "Mi Servidor Principal",
-      "host": "localhost",
-      "chequeos": { "ping": true }
-    },
-    {
-      "nombre": "Mi Página Web",
-      "host": "tudominio.com",
-      "chequeos": {
-        "ping": true,
-        "puertos": { "Web (HTTPS)": 443 },
-        "certificado_ssl": { "dias_aviso": 30 }
-      }
-    }
-  ]
-}`
 
 5. Ejecutar el Bot
 `python bot_interactivo.py`
