@@ -6,7 +6,7 @@ Friendly and reasonably simple telegram bot.
 Bot de Administración y Monitoreo para Telegram
 Un potente y versátil bot de Telegram diseñado para administradores de sistemas y desarrolladores. Permite monitorear, administrar y ejecutar tareas en tus servidores directamente desde la comodidad de tu chat de Telegram, de forma segura e interactiva.
 
-(Aquí sería un lugar ideal para poner una captura de pantalla o un GIF mostrando el menú del bot en acción)
+
 
 ✨ Características Principales
 Este bot convierte tu Telegram en una navaja suiza para la administración de sistemas.
@@ -72,8 +72,6 @@ Se recomienda usar un entorno virtual.
 `python -m venv venv`
 `source venv/bin/activate`
 `pip install -r requirements.txt`
-
-(Asegúrate de tener un archivo requirements.txt con este contenido):
 
 `python-telegram-bot
 psutil`
