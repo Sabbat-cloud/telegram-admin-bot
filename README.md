@@ -5,11 +5,11 @@ Aqui tienes un potente y versátil bot de Telegram diseñado para administradore
 
 
 
-✨ Características Principales:
+-.Características Principales:
 
 Este bot convierte tu Telegram en una navaja suiza para la administración de sistemas.
 
-📊 Monitoreo Integral:
+-.Monitoreo Integral:
 
 Reporte de Estado Multiservidor: Verifica el estado de múltiples servidores a la vez (Ping, puertos abiertos, estado de certificados SSL).
 
@@ -33,7 +33,7 @@ Con la instalación se generan dos directorios . Por defecto `/images` y `/files
 
 Descarga archivos del servidor al chat con un simple comando.
 
-🛠️ Herramientas de Red:
+-. Herramientas de Red:
 
 Accede a herramientas de diagnóstico esenciales desde menús interactivos o comandos directos:
 
@@ -43,7 +43,7 @@ Accede a herramientas de diagnóstico esenciales desde menús interactivos o com
 
 `nmap` (escaneo de puertos y servicios)
 
-🛡️ Seguridad y Usabilidad:
+-. Seguridad y Usabilidad:
 
 Control de Acceso: El bot solo responde a usuarios autorizados definidos en la configuración.
 
@@ -55,7 +55,7 @@ Interfaz Interactiva: Menús con botones en línea que facilitan la navegación 
 
 Configuración Centralizada: Toda la configuración (tokens, usuarios, servidores, scripts) se gestiona desde un único archivo configbot.json.
 
-🚀 Instalación y Configuración:
+-. Instalación y Configuración:
 
 Sigue estos pasos para poner en marcha tu bot.
 
@@ -93,7 +93,7 @@ Configura configbot.json: Renombra configbot.example.json a configbot.json y ed�
 
 Para mantenerlo corriendo en segundo plano, se recomienda usar systemd o tmux.
 
-📖 Modo de Uso:
+-. Modo de Uso:
 
 `/start`: Inicia el bot y muestra el menú principal.
 
