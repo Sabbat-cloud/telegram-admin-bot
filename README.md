@@ -3,159 +3,133 @@ Friendly and reasonably simple telegram bot.
 
 ## 📜 Licencia
 
-Este proyecto está bajo la Licencia MIT. Ver el fichero `LICENSE` para más detalles.
+Bot de Administración y Monitoreo para Telegram
+Un potente y versátil bot de Telegram diseñado para administradores de sistemas y desarrolladores. Permite monitorear, administrar y ejecutar tareas en tus servidores directamente desde la comodidad de tu chat de Telegram, de forma segura e interactiva.
 
-## Versión en Español es
-🔧 Instalación
-Existen dos métodos para instalar y ejecutar el bot. La instalación con Docker es la recomendada por su simplicidad y fiabilidad.
+(Aquí sería un lugar ideal para poner una captura de pantalla o un GIF mostrando el menú del bot en acción)
 
-### Método 1: Instalación Clásica (Manual)
-Este método es ideal si no quieres usar Docker y prefieres gestionar el entorno manualmente.
+✨ Características Principales
+Este bot convierte tu Telegram en una navaja suiza para la administración de sistemas.
 
-1. Prerrequisitos del Sistema
+📊 Monitoreo Integral
+Reporte de Estado Multiservidor: Verifica el estado de múltiples servidores a la vez (Ping, puertos abiertos, estado de certificados SSL).
 
-Asegúrate de tener todo lo necesario instalado:
+Recursos del Sistema: Obtén en tiempo real el uso de CPU, RAM y Disco del servidor donde se aloja el bot.
 
+Estado de Servicios: Comprueba el estado de servicios clave (systemd) como nginx, mysql, sshd, etc.
 
-# Para sistemas basados en Debian/Ubuntu
-`sudo apt update && sudo apt install -y python3 python3-pip python3-venv git nmap traceroute`
+Alertas de Caducidad SSL: Te avisa cuando los certificados SSL de tus dominios están a punto de caducar.
+
+⚙️ Administración Remota
+Ejecución de Scripts: Ejecuta de forma segura scripts shell o python predefinidos desde un menú. Ideal para backups, reinicios o tareas personalizadas.
+
+Gestión de Tareas Cron: Visualiza las tareas programadas (crontab) del usuario del bot.
+
+Gestión de Archivos:
+
+Sube archivos o imágenes directamente al servidor arrastrándolos al chat.
+
+Descarga archivos del servidor al chat con un simple comando.
+
+🛠️ Herramientas de Red
+Accede a herramientas de diagnóstico esenciales desde menús interactivos o comandos directos:
+
+ping
+
+traceroute
+
+nmap (escaneo de puertos y servicios)
+
+🛡️ Seguridad y Usabilidad
+Control de Acceso: El bot solo responde a usuarios autorizados definidos en la configuración.
+
+Jerarquía de Permisos: Incluye un rol de Super Administrador que es el único que puede añadir o eliminar a otros usuarios.
+
+Gestión de Usuarios Dinámica: Añade o elimina usuarios autorizados con los comandos /adduser y /deluser sin necesidad de reiniciar el bot.
+
+Interfaz Interactiva: Menús con botones en línea que facilitan la navegación y el uso sin tener que memorizar comandos.
+
+Configuración Centralizada: Toda la configuración (tokens, usuarios, servidores, scripts) se gestiona desde un único archivo configbot.json.
+
+🚀 Instalación y Configuración
+Sigue estos pasos para poner en marcha tu bot.
+
+1. Prerrequisitos
+Python 3.8 o superior.
+
+Tener instaladas las herramientas de red que quieras usar (ej: traceroute, nmap).
+
+`sudo apt update`
+`sudo apt install traceroute nmap`
 
 2. Clonar el Repositorio
+`git clone https://github.com/Sabbat-cloud/telegram-admin-bot.git`
+`cd telegram-admin-bot`
 
-`git clone https://github.com/tu-usuario/telegram-admin-bot.git``
-cd telegram-admin-bot`
-(Reemplaza la URL por la de tu repositorio)
+3. Instalar Dependencias
+Se recomienda usar un entorno virtual.
 
-3. Configurar el Bot
-
-Copia la plantilla de configuración y edítala con tus datos (el token de tu bot, tu ID de usuario de Telegram, etc.).
-
-
-`cp config/config.json.template config/config.json`
-`nano config/config.json`
-
-4. Preparar el Entorno de Python
-
-Crea un entorno virtual e instala las dependencias del proyecto.
-
-
-`python3 -m venv venv`
+`python -m venv venv`
 `source venv/bin/activate`
 `pip install -r requirements.txt`
+
+(Asegúrate de tener un archivo requirements.txt con este contenido):
+
+`python-telegram-bot
+psutil`
+
+4. Configurar el Bot
+Crea tu bot en Telegram: Habla con @BotFather para crear un nuevo bot. Guarda el token que te proporcione.
+
+Obtén tu ID de Telegram: Habla con @userinfobot para saber tu ID de usuario numérico.
+
+Configura configbot.json: Renombra configbot.example.json a configbot.json y edítalo con tu información.
+
+`{
+  "telegram": {
+    "token": "TU_TOKEN_AQUI",
+    "super_admin_id": 123456789,
+    "authorized_users": [
+      123456789
+    ]
+  },
+  "image_directory": "/home/usuario/telegram/imagenes",
+  "file_directory": "/home/usuario/telegram/ficheros",
+  "scripts_permitidos": {
+    "mi_script": "/ruta/a/mi_script.sh"
+  },
+  "servidores": [
+    {
+      "nombre": "Mi Servidor Principal",
+      "host": "localhost",
+      "chequeos": { "ping": true }
+    },
+    {
+      "nombre": "Mi Página Web",
+      "host": "tudominio.com",
+      "chequeos": {
+        "ping": true,
+        "puertos": { "Web (HTTPS)": 443 },
+        "certificado_ssl": { "dias_aviso": 30 }
+      }
+    }
+  ]
+}`
 
 5. Ejecutar el Bot
+`python bot_interactivo.py`
 
-`python3 bot/bot.py`
-El bot comenzará a funcionar. Para detenerlo, presiona Ctrl+C. Para un uso en producción, se recomienda ejecutarlo como un servicio de systemd o dentro de una sesión de tmux.
+Para mantenerlo corriendo en segundo plano, se recomienda usar systemd o tmux.
 
-### Método 2: Instalación con Docker (Recomendado)
-Este método encapsula el bot y todas sus dependencias en un contenedor, asegurando que funcione en cualquier sistema con Docker.
+📖 Modo de Uso
+`/start`: Inicia el bot y muestra el menú principal.
 
-1. Prerrequisitos del Sistema
+`/help`: Muestra una lista detallada de todos los comandos y funcionalidades.
 
-Solo necesitas tener Docker y Docker Compose instalados. Consulta la guía oficial de Docker para instalarlos.
+Navegación por menús: La mayoría de las funciones son accesibles a través de los botones interactivos.
 
-2. Clonar el Repositorio
+Comandos de gestión (Solo Super Admin):
 
-`git clone https://github.com/tu-usuario/telegram-admin-bot.git`
-`cd telegram-admin-bot`
-(Reemplaza la URL por la de tu repositorio)
+`/adduser <ID_de_usuario>`: Autoriza a un nuevo usuario.
 
-3. Configurar el Bot
-
-Copia la plantilla de configuración y edítala con tus datos.
-
-`cp config/config.json.template config/config.json`
-`nano config/config.json`
-
-Importante: Asegúrate de que las rutas dentro del fichero (image_directory, file_directory) usen la ruta base del contenedor, por ejemplo: "/app/data/imagenes".
-
-4. Crear Directorios de Datos
-
-Crea las carpetas en tu máquina local donde el bot guardará los archivos.
-
-`mkdir -p data/imagenes data/ficheros`
-
-5. Levantar el Contenedor
-
-Construye la imagen y ejecuta el contenedor en segundo plano (-d).
-
-`docker-compose up --build -d`
-El bot ya está funcionando. Para ver los logs en tiempo real, usa docker-compose logs -f. Para detener el bot, ejecuta docker-compose down.
-
-## English Version gb
-🔧 Installation
-There are two methods to install and run the bot. The Docker installation is recommended for its simplicity and reliability.
-
-### Method 1: Classic Installation (Manual)
-This method is ideal if you prefer not to use Docker and wish to manage the environment manually.
-
-1. System Prerequisites
-
-Ensure you have all the necessary tools installed:
-
-
-# For Debian/Ubuntu-based systems
-`sudo apt update && sudo apt install -y python3 python3-pip python3-venv git nmap traceroute`
-
-2. Clone the Repository
-
-`git clone https://github.com/your-username/telegram-admin-bot.git`
-`cd telegram-admin-bot`
-(Replace the URL with your repository's URL)
-
-3. Configure the Bot
-
-Copy the configuration template and edit it with your data (your bot token, your Telegram user ID, etc.).
-
-`cp config/config.json.template config/config.json`
-`nano config/config.json`
-
-4. Set up the Python Environment
-
-Create a virtual environment and install the project's dependencies.
-
-`python3 -m venv venv`
-`source venv/bin/activate`
-`pip install -r requirements.txt`
-
-5. Run the Bot
-
-`python3 bot/bot.py`
-The bot will start running. To stop it, press Ctrl+C. For production use, it's recommended to run it as a systemd service or within a tmux session.
-
-### Method 2: Docker Installation (Recommended)
-This method packages the bot and all its dependencies into a container, ensuring it works on any system with Docker installed.
-
-1. System Prerequisites
-
-You only need Docker and Docker Compose. Refer to the official Docker guide for installation instructions.
-
-2. Clone the Repository
-
-`git clone https://github.com/your-username/telegram-admin-bot.git`
-`cd telegram-admin-bot`
-(Replace the URL with your repository's URL)
-
-3. Configure the Bot
-
-Copy the configuration template and edit it with your data.
-
-`cp config/config.json.template config/config.json`
-`nano config/config.json`
-
-Important: Make sure the paths inside the file (image_directory, file_directory) use the container's base path, for example: "/app/data/imagenes".
-
-4. Create Data Directories
-
-Create the folders on your local machine where the bot will store files.
-
-`mkdir -p data/imagenes data/ficheros`
-
-5. Run the Container
-
-Build the image and run the container in detached mode (-d).
-
-`docker-compose up --build -d`
-
-The bot is now running. To view the logs in real-time, use docker-compose logs -f. To stop the bot, run docker-compose down.
+`/deluser <ID_de_usuario>`: Revoca el acceso a un usuario.
