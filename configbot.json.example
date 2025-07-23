@@ -1,33 +1,38 @@
 {
-  "telegram": {
-    "token": "TU TOKEN_ID",
-    "chat_id": "TU CHAT ID",
-    "super_admin_id": TU CHAT ID,
+    "telegram": {
+    "token": "YOUR BOT TOKEN",
+    "chat_id": "YOUR CHAT ID ex: 12345678 NO @NICKNAME",
+    "super_admin_id": 12345678,
     "authorized_users": [
-      12345678,
-      98765432
+      123456789,
+      987654321
     ],
     "enviar_reporte_periodico": false
   },
-  "image_directory": "/home/TU_USUARIO/telegram/imagenes",
-  "file_directory": "/home/TU_USUARIO/telegram/ficheros",
+  "gemini_api": {
+	  "enabled": true,
+	  "api_key": "YOUR GEMINI API KEY",
+	  "flash_model": "gemini-1.5-flash-latest",
+	  "pro_model": "gemini-1.5-pro-latest"
+  },
+  "image_directory": "~/telegram-admin-bot/imagenes",
+  "file_directory": "~/telegram-admin-bot/ficheros",
   "scripts_permitidos": {
-    "monitor-multiservidor": "/home/TU_USUARIO/telegram/TUSCRIPT.sh",
-    "otro script": "/home/TU_USUARIO/scripts/OTRO_SCRIPT.sh"
+    "example1": "~/telegram-admin-bot/scripts/sh/example1.sh",
+    "example2": "~/telegram-admin-bot/scripts/sh/example2.sh"
   },
   "python_scripts_permitidos": {
-    "multiservidor": "/home/TU_USUARIO/telegram/TUSCRIPT_PYTHON.py",
-    "Verificar id": "/home/TU_USUARIO/telegram/OTROSCRIPT_PYTHON.py"
+    "example1": "~/telegram-admin-bot/scripts/py/example1.py",
+    "example2": "~/telegram-admin-bot/scripts/py/example2.py"
   },
   "servicios_permitidos": [
     "nginx",
-    "telegram_bot",
+    "telegram-admin-bot",
     "mysql",
     "sshd",
     "postfix",
     "dovecot",
-    "fail2ban",
-    "OTRO_SERVICIO"
+    "fail2ban"
   ],
   "docker_containers_allowed": [
     "my_web_app_container",
@@ -54,7 +59,7 @@
   },
   "servidores": [
     {
-      "nombre": "Servidor Principal",
+      "nombre": "server host",
       "host": "localhost",
       "chequeos": {
         "ping": true,
@@ -81,7 +86,7 @@
       }
     },
     {
-      "nombre": "Mi Página Web (Externa)",
+      "nombre": "Website example1",
       "host": "sabbat.cloud",
       "chequeos": {
         "ping": true,
@@ -95,8 +100,8 @@
       }
     },
     {
-      "nombre": "Web de ejemplo",
-      "host": "xxxx.xx",
+      "nombre": "Website example2",
+      "host": "google.es",
       "chequeos": {
         "ping": true,
         "puertos": {

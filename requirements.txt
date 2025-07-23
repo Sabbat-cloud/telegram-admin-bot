@@ -1,3 +1,8 @@
-python-telegram-bot
+# Telegram Bot Framework with extensions for persistence
+python-telegram-bot[ext]
+
+# System and process monitoring
 psutil
-telegram
+
+# Google Generative AI API
+google-generativeai
