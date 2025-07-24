@@ -14,7 +14,7 @@ This is a powerful and versatile Telegram bot designed for the administration, m
 * **Gestión de Servicios y Docker:** Revisa el estado de servicios (`systemctl`) y gestiona tus contenedores Docker (listar, ver logs, reiniciar).
 * **Ejecución Remota:** Ejecuta de forma segura scripts Shell y Python pre-autorizados en tu servidor.
 * **Herramientas de Red:** Lanza `ping`, `traceroute`, `nmap`, `dig` y `whois` desde el bot.
-* **Gestión de Archivos:** Sube y descarga archivos desde y hacia el servidor.
+* **Gestión de Archivos:** Sube y descarga archivos desde y hacia el servidor., solo tienes que subir una foto o fichero y se guardara automáticamente en las carpetas designadas.
 * **Integración con IA:** Realiza consultas a la API de Gemini de Google (modelos Flash y Pro).
 * **Control de Acceso:** Sistema de usuarios seguro con un Super Administrador que gestiona los permisos.
 * **Multi-idioma:** Interfaz disponible en Español e Inglés.
@@ -69,7 +69,7 @@ Se recomienda ejecutar el bot dentro de un servicio `systemd` o una sesión `scr
 * **Service & Docker Management:** Check the status of services (`systemctl`) and manage your Docker containers (list, view logs, restart).
 * **Remote Execution:** Securely run pre-authorized Shell and Python scripts on your server.
 * **Network Tools:** Launch `ping`, `traceroute`, `nmap`, `dig`, and `whois` from the bot.
-* **File Management:** Upload and download files to and from the server.
+* **File Management:** Upload and download files to and from the server. Just put a photo or file and it will automatically save it in the designated folders.
 * **AI Integration:** Make queries to Google's Gemini API (Flash and Pro models).
 * **Access Control:** Secure user system with a Super Admin who manages permissions.
 * **Multi-language:** Interface available in English and Spanish.
