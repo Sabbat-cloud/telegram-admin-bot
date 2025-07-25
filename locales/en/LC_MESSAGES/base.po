@@ -1,0 +1,156 @@
+# English translations for Telegram Bot
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "❌ No tienes permiso."
+msgstr "❌ You do not have permission."
+
+msgid "❌ No tienes permiso para usar este bot."
+msgstr "❌ You do not have permission to use this bot."
+
+msgid "⛔ Este comando solo puede ser usado por el super administrador."
+msgstr "⛔ This command can only be used by the super administrator."
+
+msgid "📊 Monitorización"
+msgstr "📊 Monitoring"
+
+msgid "⚙️ Administración"
+msgstr "⚙️ Administration"
+
+msgid "🛠️ Herramientas de Red"
+msgstr "🛠️ Network Tools"
+
+msgid "🐳 Gestión Docker"
+msgstr "🐳 Docker Management"
+
+msgid "📁 Gestión de Archivos"
+msgstr "📁 File Management"
+
+msgid "🌐 Idioma / Language"
+msgstr "🌐 Language / Idioma"
+
+msgid "❓ Ayuda"
+msgstr "❓ Help"
+
+msgid "🍀 Fortuna"
+msgstr "🍀 Fortune"
+
+msgid "🔄 Actualizar"
+msgstr "🔄 Refresh"
+
+msgid "Sistemas (Status General)"
+msgstr "Systems (General Status)"
+
+msgid "Recursos Locales (CPU/RAM)"
+msgstr "Local Resources (CPU/RAM)"
+
+msgid "Uso de Disco (`df -h`)"
+msgstr "Disk Usage (`df -h`)"
+
+msgid "Procesos (`ps aux`)"
+msgstr "Processes (`ps aux`)"
+
+msgid "Info. Sistema (`uname -a`)"
+msgstr "System Info (`uname -a`)"
+
+msgid "Ver Logs"
+msgstr "View Logs"
+
+msgid "Estado de un Servicio"
+msgstr "Service Status"
+
+msgid "⬅️ Volver"
+msgstr "⬅️ Back"
+
+msgid "¡Hola {first_name}! 👋\n\nSelecciona una opción del menú para empezar."
+msgstr "Hello {first_name}! 👋\n\nSelect an option from the menu to get started."
+
+msgid "Idioma actualizado a {lang_name}."
+msgstr "Language updated to {lang_name}."
+
+msgid "Menú Principal"
+msgstr "Main Menu"
+
+msgid "Menú de Monitorización"
+msgstr "Monitoring Menu"
+
+msgid "Menú de Administración"
+msgstr "Administration Menu"
+
+msgid "Selecciona tu idioma:"
+msgstr "Select your language:"
+
+msgid "Menú de Gestión de Archivos\n\nPara subir, simplemente envía el archivo."
+msgstr "File Management Menu\n\nTo upload, just send the file."
+
+msgid "Menú actualizado a las {time}"
+msgstr "Menu updated at {time}"
+
+msgid "Obteniendo {action_name}..."
+msgstr "Getting {action_name}..."
+
+msgid "Uso: {usage}"
+msgstr "Usage: {usage}"
+
+msgid "Uso: `/adduser <ID_de_usuario_numérico>`"
+msgstr "Usage: `/adduser <numeric_user_ID>`"
+
+msgid "✅ Usuario `{user_id}` añadido."
+msgstr "✅ User `{user_id}` added."
+
+msgid "❌ Error al guardar la configuración."
+msgstr "❌ Error while saving the configuration."
+
+msgid "ℹ️ El usuario `{user_id}` ya estaba autorizado."
+msgstr "ℹ️ User `{user_id}` was already authorized."
+
+msgid "ℹ️ No hay ningún usuario autorizado en la lista."
+msgstr "ℹ️ There are no authorized users in the list."
+
+msgid "👥 **Lista de Usuarios Autorizados**\n"
+msgstr "👥 **List of Authorized Users**\n"
+
+msgid "👑 *Super Admin*: `{user_id}`"
+msgstr "👑 *Super Admin*: `{user_id}`"
+
+msgid "👤 *Usuario*: `{user_id}`"
+msgstr "👤 *User*: `{user_id}`"
+
+msgid "✅ Ping: **Accesible**"
+msgstr "✅ Ping: **Reachable**"
+
+msgid "❌ Ping: **INACCESIBLE**"
+msgstr "❌ Ping: **UNREACHABLE**"
+
+msgid "❌ Ping: **Timeout**"
+msgstr "❌ Ping: **Timeout**"
+
+msgid "✅ Puerto {port_name} ({port_num}): **Abierto**"
+msgstr "✅ Port {port_name} ({port_num}): **Open**"
+
+msgid "❌ Puerto {port_name} ({port_num}): **Cerrado**"
+msgstr "❌ Port {port_name} ({port_num}): **Closed**"
+
+msgid "🍀 **Tu fortuna dice:**\n\n```\n{fortune}\n```"
+msgstr "🍀 **Your fortune says:**\n\n```\n{fortune}\n```"
+
+msgid "🔧 Utilidades"
+msgstr "🔧 Utilities"
+
+msgid "Menú de Utilidades"
+msgstr "Utilities Menu"
+
+msgid "🌦️ Consultar Tiempo"
+msgstr "🌦️ Check Weather"
+
+msgid "Por favor, introduce la localidad que quieres consultar, o envía /cancel para anular."
+msgstr "Please enter the location you want to check, or send /cancel to abort."
+
+msgid "Operación cancelada."
+msgstr "Operation cancelled."
+# ... (y así sucesivamente con todos los textos, traduciendo el msgstr al inglés)

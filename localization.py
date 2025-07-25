@@ -33,3 +33,11 @@ def setup_translation(context: ContextTypes.DEFAULT_TYPE) -> callable:
     user_lang = get_user_language(context)
     translator = get_translator(user_lang)
     return translator.gettext
+
+def get_system_translator(lang: str = DEFAULT_LANG) -> callable:
+    """
+    Obtiene una función de traducción para tareas del sistema que no están
+    vinculadas a un usuario específico. Usa el idioma por defecto.
+    """
+    translator = get_translator(lang)
+    return translator.gettext

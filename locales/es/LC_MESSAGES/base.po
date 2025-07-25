@@ -1,0 +1,156 @@
+# Spanish translations for Telegram Bot
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "❌ No tienes permiso."
+msgstr "❌ No tienes permiso."
+
+msgid "❌ No tienes permiso para usar este bot."
+msgstr "❌ No tienes permiso para usar este bot."
+
+msgid "⛔ Este comando solo puede ser usado por el super administrador."
+msgstr "⛔ Este comando solo puede ser usado por el super administrador."
+
+msgid "📊 Monitorización"
+msgstr "📊 Monitorización"
+
+msgid "⚙️ Administración"
+msgstr "⚙️ Administración"
+
+msgid "🛠️ Herramientas de Red"
+msgstr "🛠️ Herramientas de Red"
+
+msgid "🐳 Gestión Docker"
+msgstr "🐳 Gestión Docker"
+
+msgid "📁 Gestión de Archivos"
+msgstr "📁 Gestión de Archivos"
+
+msgid "🌐 Idioma / Language"
+msgstr "🌐 Idioma / Language"
+
+msgid "❓ Ayuda"
+msgstr "❓ Ayuda"
+
+msgid "🍀 Fortuna"
+msgstr "🍀 Fortuna"
+
+msgid "🔄 Actualizar"
+msgstr "🔄 Actualizar"
+
+msgid "Sistemas (Status General)"
+msgstr "Sistemas (Status General)"
+
+msgid "Recursos Locales (CPU/RAM)"
+msgstr "Recursos Locales (CPU/RAM)"
+
+msgid "Uso de Disco (`df -h`)"
+msgstr "Uso de Disco (`df -h`)"
+
+msgid "Procesos (`ps aux`)"
+msgstr "Procesos (`ps aux`)"
+
+msgid "Info. Sistema (`uname -a`)"
+msgstr "Info. Sistema (`uname -a`)"
+
+msgid "Ver Logs"
+msgstr "Ver Logs"
+
+msgid "Estado de un Servicio"
+msgstr "Estado de un Servicio"
+
+msgid "⬅️ Volver"
+msgstr "⬅️ Volver"
+
+msgid "¡Hola {first_name}! 👋\n\nSelecciona una opción del menú para empezar."
+msgstr "¡Hola {first_name}! 👋\n\nSelecciona una opción del menú para empezar."
+
+msgid "Idioma actualizado a {lang_name}."
+msgstr "Idioma actualizado a {lang_name}."
+
+msgid "Menú Principal"
+msgstr "Menú Principal"
+
+msgid "Menú de Monitorización"
+msgstr "Menú de Monitorización"
+
+msgid "Menú de Administración"
+msgstr "Menú de Administración"
+
+msgid "Selecciona tu idioma:"
+msgstr "Selecciona tu idioma:"
+
+msgid "Menú de Gestión de Archivos\n\nPara subir, simplemente envía el archivo."
+msgstr "Menú de Gestión de Archivos\n\nPara subir, simplemente envía el archivo."
+
+msgid "Menú actualizado a las {time}"
+msgstr "Menú actualizado a las {time}"
+
+msgid "Obteniendo {action_name}..."
+msgstr "Obteniendo {action_name}..."
+
+msgid "Uso: {usage}"
+msgstr "Uso: {usage}"
+
+msgid "Uso: `/adduser <ID_de_usuario_numérico>`"
+msgstr "Uso: `/adduser <ID_de_usuario_numérico>`"
+
+msgid "✅ Usuario `{user_id}` añadido."
+msgstr "✅ Usuario `{user_id}` añadido."
+
+msgid "❌ Error al guardar la configuración."
+msgstr "❌ Error al guardar la configuración."
+
+msgid "ℹ️ El usuario `{user_id}` ya estaba autorizado."
+msgstr "ℹ️ El usuario `{user_id}` ya estaba autorizado."
+
+msgid "ℹ️ No hay ningún usuario autorizado en la lista."
+msgstr "ℹ️ No hay ningún usuario autorizado en la lista."
+
+msgid "👥 **Lista de Usuarios Autorizados**\n"
+msgstr "👥 **Lista de Usuarios Autorizados**\n"
+
+msgid "👑 *Super Admin*: `{user_id}`"
+msgstr "👑 *Super Admin*: `{user_id}`"
+
+msgid "👤 *Usuario*: `{user_id}`"
+msgstr "👤 *Usuario*: `{user_id}`"
+
+msgid "✅ Ping: **Accesible**"
+msgstr "✅ Ping: **Accesible**"
+
+msgid "❌ Ping: **INACCESIBLE**"
+msgstr "❌ Ping: **INACCESIBLE**"
+
+msgid "❌ Ping: **Timeout**"
+msgstr "❌ Ping: **Timeout**"
+
+msgid "✅ Puerto {port_name} ({port_num}): **Abierto**"
+msgstr "✅ Puerto {port_name} ({port_num}): **Abierto**"
+
+msgid "❌ Puerto {port_name} ({port_num}): **Cerrado**"
+msgstr "❌ Puerto {port_name} ({port_num}): **Cerrado**"
+
+msgid "🍀 **Tu fortuna dice:**\n\n```\n{fortune}\n```"
+msgstr "🍀 **Tu fortuna dice:**\n\n```\n{fortune}\n```"
+
+msgid "🔧 Utilidades"
+msgstr "🔧 Utilidades"
+
+msgid "Menú de Utilidades"
+msgstr "Menú de Utilidades"
+
+msgid "🌦️ Consultar Tiempo"
+msgstr "🌦️ Consultar Tiempo"
+
+msgid "Por favor, introduce la localidad que quieres consultar, o envía /cancel para anular."
+msgstr "Por favor, introduce la localidad que quieres consultar, o envía /cancel para anular."
+
+msgid "Operación cancelada."
+msgstr "Operación cancelada."
+# ... (y así sucesivamente con todos los textos, el msgid y msgstr son iguales para español)

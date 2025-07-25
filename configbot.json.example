@@ -1,33 +1,68 @@
 {
     "telegram": {
-    "token": "YOUR BOT TOKEN",
-    "chat_id": "YOUR CHAT ID ex: 12345678 NO @NICKNAME",
-    "super_admin_id": 12345678,
-    "authorized_users": [
-      123456789,
-      987654321
-    ],
+    "token": "REMOVED_AND_SET_AS_ENVIRONMENT_VARIABLE",
+    "chat_id": "YOUR CHAT ID. ONLY NUMBER NO @NICKNAME",
+    "super_admin_id": "REMOVED_TO_USERS_JSON",
+    "authorized_users": "REMOVED_TO_USERS_JSON",
     "enviar_reporte_periodico": false
   },
   "gemini_api": {
-	  "enabled": true,
-	  "api_key": "YOUR GEMINI API KEY",
-	  "flash_model": "gemini-1.5-flash-latest",
-	  "pro_model": "gemini-1.5-pro-latest"
+    "enabled": true,
+    "api_key": "REMOVED_AND_SET_AS_ENVIRONMENT_VARIABLE",
+    "flash_model": "gemini-1.5-flash-latest",
+    "pro_model": "gemini-1.5-pro-latest"
   },
-  "image_directory": "~/telegram-admin-bot/imagenes",
-  "file_directory": "~/telegram-admin-bot/ficheros",
+  
+  
+  "fail2ban_jails": [
+    "sshd",
+    "nginx-http-auth",
+    "postfix"
+  ],
+  "log_monitoring": {
+    "enabled": true,
+    "check_interval_seconds": 60,
+    "watched_logs": [
+      {
+        "alias": "auth",
+        "patterns": [
+          "Failed password for",
+          "Accepted publickey for"
+        ]
+      },
+      {
+        "alias": "nginx_error",
+        "patterns": [
+          "\\b(error|crit|alert|emerg)\\b"
+        ]
+      }
+    ]
+  },
+  "monitoring_thresholds": {
+    "check_interval_minutes": 5,
+    "cpu_usage_percent": 90,
+    "disk_usage_percent": 95
+  },
+
+  "image_directory": "~/telegram/imagenes",
+  "file_directory": "~/telegram/ficheros",
   "scripts_permitidos": {
-    "example1": "~/telegram-admin-bot/scripts/sh/example1.sh",
-    "example2": "~/telegram-admin-bot/scripts/sh/example2.sh"
+    "example1": "~/telegram/scripts/sh/example1.sh",
+    "example2": "~/telegram/scripts/sh/example2.sh"
   },
   "python_scripts_permitidos": {
-    "example1": "~/telegram-admin-bot/scripts/py/example1.py",
-    "example2": "~/telegram-admin-bot/scripts/py/example2.py"
+    "example1": "~/telegram/scripts/py/example1.py",
+    "example2": "~/telegram/scripts/py/example2.py"
+  },
+  "backup_scripts": {
+    "respaldo_completo_web": "~/telegram/scripts/sh/backup/backup_web_full.sh",
+    "respaldo_base_de_datos": "~/telegram/scripts/sh/backup/backup_db_mysql.sh",
+    "respaldo_docker_volumes": "~/telegram/scripts/sh/backup/backup_docker.sh",
+    "respaldo_bot_telegram": "~/telegram/scripts/sh/backup/backup_bot.sh"
   },
   "servicios_permitidos": [
     "nginx",
-    "telegram-admin-bot",
+    "telegram_bot",
     "mysql",
     "sshd",
     "postfix",
@@ -57,9 +92,10 @@
     "last_update_check": 0,
     "update_check_interval_hours": 24
   },
+  
   "servidores": [
     {
-      "nombre": "server host",
+      "nombre": "Servidor Principal",
       "host": "localhost",
       "chequeos": {
         "ping": true,
@@ -86,7 +122,7 @@
       }
     },
     {
-      "nombre": "Website example1",
+      "nombre": "web example",
       "host": "sabbat.cloud",
       "chequeos": {
         "ping": true,
@@ -100,8 +136,8 @@
       }
     },
     {
-      "nombre": "Website example2",
-      "host": "google.es",
+      "nombre": "example 2",
+      "host": "gooogle.com",
       "chequeos": {
         "ping": true,
         "puertos": {

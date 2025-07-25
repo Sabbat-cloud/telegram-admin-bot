@@ -1,12 +1,11 @@
 # core_functions.py
 # Contiene la lógica las funciones de "trabajo pesado".
-# No tiene dependencias de la librería de Telegram.
 
 import json
 import socket
 import subprocess
 import platform
-import datetime 
+import datetime
 import logging
 import os
 import sys
@@ -17,29 +16,99 @@ import re
 import google.generativeai as genai
 
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configbot.json')
+USERS_FILE = os.path.join(os.path.dirname(__file__), 'users.json')
+LOG_STATE_FILE = os.path.join(os.path.dirname(__file__), 'log_monitoring_state.json')
 
-# --- CARGA Y GUARDADO DE CONFIGURACIÓN ---
+# --- CARGA Y GUARDADO DE CONFIGURACIÓN Y USUARIOS ---
 def cargar_configuracion():
     try:
         with open(CONFIG_FILE, 'r') as f:
             return json.load(f)
     except FileNotFoundError:
         logging.error(f"Error: El archivo de configuración '{CONFIG_FILE}' no se encontró.")
-        sys.exit()
+        sys.exit(1)
     except json.JSONDecodeError:
         logging.error(f"Error: El archivo de configuración '{CONFIG_FILE}' tiene un formato JSON inválido.")
-        sys.exit()
+        sys.exit(1)
 
-def guardar_configuracion(config_data):
+def cargar_usuarios():
     try:
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(config_data, f, indent=2)
+        with open(USERS_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Error: El archivo de usuarios '{USERS_FILE}' no se encontró.")
+        return {}
+    except json.JSONDecodeError:
+        logging.error(f"Error: El archivo de usuarios '{USERS_FILE}' es inválido.")
+        return {}
+
+def guardar_usuarios(users_data):
+    try:
+        with open(USERS_FILE, 'w') as f:
+            json.dump(users_data, f, indent=2)
         return True
     except Exception as e:
-        logging.error(f"Error al guardar la configuración en '{CONFIG_FILE}': {e}")
+        logging.error(f"Error al guardar usuarios en '{USERS_FILE}': {e}")
         return False
 
-# --- LÓGICA DE VERIFICACIÓN ---
+# --- FUNCIONES DE COMANDOS DE SISTEMA (SINCRÓNICAS) ---
+
+def _run_command(command, timeout, success_msg, error_msg_prefix, _):
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
+        output = proc.stdout or proc.stderr
+        if proc.returncode != 0 and "INACCESIBLE" not in success_msg:
+             return f"❌ {error_msg_prefix}: {output or '(Sin salida de error)'}"
+        if len(output) > 4000:
+            output = output[:4000] + "\n\n... (salida truncada)"
+        return f"{success_msg}\n```\n{output}\n```"
+    except FileNotFoundError:
+        return _("❌ Error: El comando `{command}` no se encuentra. ¿Está instalado?").format(command=command[0])
+    except subprocess.TimeoutExpired:
+        return _("❌ Error: Timeout ({timeout}s) durante la ejecución de `{command}`.").format(timeout=timeout, command=command[0])
+    except Exception as e:
+        return f"❌ {error_msg_prefix}: {e}"
+
+def run_shell_script(script_name: str, _):
+    config = cargar_configuracion()
+    script_path_raw = config.get("scripts_permitidos", {}).get(script_name)
+    if not script_path_raw: return _("❌ Script no encontrado o no permitido.")
+    script_path = os.path.expanduser(script_path_raw)
+    return _run_command([script_path], 120, _("✅ **Script '{name}' ejecutado:**").format(name=script_name), _("Error al ejecutar {name}").format(name=script_name), _)
+
+def run_python_script(script_name: str, _):
+    config = cargar_configuracion()
+    script_path_raw = config.get("python_scripts_permitidos", {}).get(script_name)
+    if not script_path_raw: return _("❌ Script no encontrado o no permitido.")
+    script_path = os.path.expanduser(script_path_raw)
+    return _run_command([sys.executable, script_path], 300, _("✅ **Script '{name}' ejecutado:**").format(name=script_name), _("Error al ejecutar {name}").format(name=script_name), _)
+
+def get_cron_tasks(_):
+    try:
+        proc = subprocess.run('crontab -l', shell=True, capture_output=True, text=True, timeout=10)
+        if proc.stderr and "no crontab for" in proc.stderr:
+            return _("ℹ️ No hay tareas de cron configuradas para el usuario actual.")
+        elif proc.returncode != 0:
+            return _("❌ **Error al leer crontab:**\n`{error}`").format(error=proc.stderr)
+        else:
+            return _("🗓️ **Tareas de Cron (`crontab -l`):**\n\n```\n{output}\n```").format(output=proc.stdout or '(Vacío)')
+    except Exception as e:
+        return _("❌ **Error inesperado** al consultar cron: {error}").format(error=e)
+
+def get_service_status(service_name: str, _):
+    try:
+        proc = subprocess.run(['systemctl', 'status', service_name], capture_output=True, text=True, timeout=10)
+        output = proc.stdout + proc.stderr
+        status_icon, status_text = (_("✅"), _("Activo")) if "active (running)" in output else \
+                                   (_("❌"), _("Inactivo")) if "inactive (dead)" in output else \
+                                   (_("🔥"), _("Ha fallado")) if "failed" in output else \
+                                   (_("❔"), _("Desconocido"))
+        log_lines = re.findall(r'●.*|Loaded:.*|Active:.*|Main PID:.*|(?<=─ ).*', output)
+        detalle = "\n".join(log_lines[-5:])
+        return _("{icon} **Estado de `{p}`: {txt}**\n\n```\n{det}\n```").format(icon=status_icon, p=service_name, txt=status_text, det=detalle or _('No hay detalles.'))
+    except Exception as e:
+        return _("❌ Error al verificar {p}: {e}").format(p=service_name, e=e)
+
 def check_ping(host, _):
     param = '-n 1' if platform.system().lower() == 'windows' else '-c 1'
     command = ['ping', param, host]
@@ -62,8 +131,8 @@ def check_ssl_expiry(host, port, days_warning, _):
         with socket.create_connection((host, port), timeout=5) as sock:
             with context.wrap_socket(sock, server_hostname=host) as ssock:
                 cert = ssock.getpeercert()
-                expiry_date = datetime.datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z') # <--- CORREGIDO
-                days_left = (expiry_date - datetime.datetime.now()).days # <--- CORREGIDO
+                expiry_date = datetime.datetime.strptime(cert['notAfter'], '%b %d %H:%M:%S %Y %Z')
+                days_left = (expiry_date - datetime.datetime.now()).days
                 if days_left > days_warning:
                     return _("✅ Cert. SSL: Expira en **{days_left} días**").format(days_left=days_left)
                 return _("🔥 Cert. SSL: Expira en **{days_left} días** (Aviso a los {days_warning})").format(days_left=days_left, days_warning=days_warning)
@@ -71,7 +140,6 @@ def check_ssl_expiry(host, port, days_warning, _):
         logging.warning(f"Error SSL para {host}: {e}")
         return _("❌ Cert. SSL: **No se pudo verificar**")
 
-# --- GENERACIÓN DE REPORTES ---
 def get_resources_text(_):
     try:
         cpu_percent = psutil.cpu_percent(interval=1)
@@ -117,24 +185,9 @@ def get_status_report_text(_):
     for servidor, checks in reporte_data.items():
         lineas_reporte.append(f"\n--- **{servidor}** ---")
         lineas_reporte.extend(checks)
-    fecha = _("\n_{datetime}_").format(datetime=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')) # <--- CORREGIDO
+    fecha = _("\n_{datetime}_").format(datetime=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     lineas_reporte.append(fecha)
     return "\n".join(lineas_reporte)
-
-# --- FUNCIONES DE RED ---
-def _run_command(command, timeout, success_msg, error_msg_prefix, _):
-    try:
-        proc = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
-        output = proc.stdout or proc.stderr
-        if len(output) > 4000:
-            output = output[:4000] + "\n\n... (salida truncada)"
-        return f"{success_msg}\n```\n{output}\n```"
-    except FileNotFoundError:
-        return _("❌ Error: El comando `{command}` no se encuentra. ¿Está instalado?").format(command=command[0])
-    except subprocess.TimeoutExpired:
-        return _("❌ Error: Timeout ({timeout}s) durante la ejecución de `{command}`.").format(timeout=timeout, command=command[0])
-    except Exception as e:
-        return f"❌ {error_msg_prefix}: {e}"
 
 def do_ping(host: str, _) -> str:
     param = '-n 4' if platform.system().lower() == 'windows' else '-c 4'
@@ -153,7 +206,6 @@ def do_dig(domain: str, _) -> str:
 def do_whois(domain: str, _) -> str:
     return _run_command(['whois', domain], 30, _("👤 **Resultado de WHOIS para `{domain}`:**").format(domain=domain), _("Error inesperado de WHOIS"), _)
 
-# --- FUNCIONES DE ADMINISTRACIÓN Y MONITOREO DEL SISTEMA ---
 def get_disk_usage_text(_) -> str:
     return _run_command(['df', '-h'], 10, _("💾 **Uso de Disco (`df -h`)**"), _("Error al ejecutar `df -h`"), _)
 
@@ -203,24 +255,36 @@ def search_log(log_alias: str, pattern: str, _) -> str:
 def docker_command(action: str, _, container_name: str = None, num_lines: int = 10) -> str:
     config = cargar_configuracion()
     docker_allowed = config.get("docker_containers_allowed", [])
-
     if action == 'ps':
         return _run_command(['docker', 'ps', '--format', 'table {{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}'], 20, _("🐳 **Contenedores Docker Activos:**"), _("Error al listar contenedores"), _)
-
     if not container_name:
         return _("❌ Se requiere el nombre del contenedor para esta acción.")
     if container_name not in docker_allowed:
         return _("❌ El contenedor '{container_name}' no está permitido.").format(container_name=container_name)
-
     if action == 'logs':
         return _run_command(['docker', 'logs', '--tail', str(num_lines), container_name], 60, _("📜 **Logs de `{container_name}` (últimas {num_lines} líneas):**").format(container_name=container_name, num_lines=num_lines), _("Error al obtener logs de {container_name}").format(container_name=container_name), _)
     elif action == 'restart':
         return _run_command(['sudo', 'docker', 'restart', container_name], 30, _("🔄 **Contenedor `{container_name}` Reiniciado:**").format(container_name=container_name), _("Error al reiniciar {container_name}").format(container_name=container_name), _)
-
     return _("❌ Acción de Docker no reconocida.")
 
+def manage_service(service_name: str, action: str, _) -> str:
+    config = cargar_configuracion()
+    allowed_services = config.get("servicios_permitidos", [])
+    if service_name not in allowed_services:
+        return _("❌ El servicio '{service_name}' no está en la lista de servicios permitidos.").format(service_name=service_name)
+    command = ['sudo', 'systemctl', action, service_name]
+    action_map_present = {'start': _("Iniciando"), 'stop': _("Parando"), 'restart': _("Reiniciando")}
+    action_map_past = {'start': _("iniciado"), 'stop': _("parado"), 'restart': _("reiniciado")}
+    action_text = action_map_present.get(action, action.capitalize())
+    success_msg = _("✅ **Servicio `{service_name}` {action_past_tense} con éxito.**").format(service_name=service_name, action_past_tense=action_map_past.get(action))
+    error_msg_prefix = _("❌ Error al {action_text} el servicio '{service_name}'").format(action_text=action_text.lower(), service_name=service_name)
+    execution_result = _run_command(command, 30, success_msg, error_msg_prefix, _)
+    time.sleep(2)
+    status_report = get_service_status(service_name, _)
+    final_status_line = status_report.split('\n', 1)[0]
+    return execution_result.split('```')[0] + f"```{final_status_line}```"
+
 def get_fortune_text(_) -> str:
-    """Ejecuta el comando 'fortune' y devuelve su salida formateada."""
     try:
         proc = subprocess.run(['/usr/games/fortune'], capture_output=True, text=True, timeout=5, check=True)
         return _("🍀 **Tu fortuna dice:**\n\n```\n{fortune}\n```").format(fortune=proc.stdout)
@@ -229,86 +293,162 @@ def get_fortune_text(_) -> str:
     except Exception as e:
         return _("❌ Error inesperado al ejecutar fortune: {error}").format(error=e)
 
-# --- FUNCIONES DE IA (GEMINI API) ---
-
 def ask_gemini_model(prompt: str, model_name: str, _) -> str:
-    """
-    Envía un prompt a un modelo de Gemini especificado y devuelve su respuesta.
-    """
     config = cargar_configuracion()
     gemini_config = config.get("gemini_api", {})
-
     if not gemini_config.get("enabled"):
         return _("❌ La función de consulta a la API de Gemini no está habilitada.")
-
-    api_key = gemini_config.get("api_key")
-    if not api_key or "AQUÍ_VA_TU_API_KEY" in api_key:
-        return _("❌ La API Key de Gemini no está configurada en `configbot.json`.")
-
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        return _("❌ La API Key de Gemini no está configurada en la variable de entorno `GEMINI_API_KEY`.")
     try:
-        # Configura la API
         genai.configure(api_key=api_key)
-
-        # Crea el modelo y genera la respuesta
         model = genai.GenerativeModel(model_name=model_name)
         response = model.generate_content(prompt)
-
-        # Extraer el texto de la respuesta
         if response.parts:
             return _("🤖 **Respuesta ({model_name}):**\n\n{text}").format(model_name=model_name.split('/')[-1], text=response.text)
         else:
-            # Esto puede ocurrir si la respuesta fue bloqueada por seguridad
-            return _("❌ No se recibió una respuesta válida del modelo. La solicitud pudo haber sido bloqueada por políticas de seguridad.")
-
+            return _("❌ No se recibió una respuesta válida del modelo. La solicitud pudo haber sido bloqueada.")
     except Exception as e:
         logging.error(f"Error al contactar con la API de Gemini: {e}")
         return _("❌ Ocurrió un error al procesar la consulta con Gemini: `{error}`").format(error=str(e))
 
-# --- RECORDATORIOS ---
 def parse_time_to_seconds(time_str: str) -> int:
-    """
-    Parsea un string de tiempo como "1h 30m 15s" a segundos.
-    Soporta días (d), horas (h), minutos (m) y segundos (s).
-    Devuelve 0 si el formato es inválido.
-    """
     parts = re.findall(r'(\d+)\s*([dhms])', time_str.lower())
-    if not parts:
-        return 0
-
+    if not parts: return 0
     delta_args = {"days": 0, "hours": 0, "minutes": 0, "seconds": 0}
     for value, unit in parts:
-        if unit == 'd':
-            delta_args['days'] += int(value)
-        elif unit == 'h':
-            delta_args['hours'] += int(value)
-        elif unit == 'm':
-            delta_args['minutes'] += int(value)
-        elif unit == 's':
-            delta_args['seconds'] += int(value)
-
-    return int(datetime.timedelta(**delta_args).total_seconds()) # <--- CORREGIDO
+        if unit == 'd': delta_args['days'] += int(value)
+        elif unit == 'h': delta_args['hours'] += int(value)
+        elif unit == 'm': delta_args['minutes'] += int(value)
+        elif unit == 's': delta_args['seconds'] += int(value)
+    return int(datetime.timedelta(**delta_args).total_seconds())
 
 def get_weather_text(location: str, _) -> str:
-    """
-    Ejecuta ansiweather para una localidad y devuelve el resultado sin códigos de color.
-    """
     command = ['ansiweather', '-l', location]
     try:
-        # Usamos subprocess.run directamente para controlar mejor la salida
         proc = subprocess.run(command, capture_output=True, text=True, timeout=15, check=True)
-        # Eliminamos los códigos de color ANSI de la salida para que se vea bien en Telegram
         cleaned_output = re.sub(r'\x1b\[[0-9;]*m', '', proc.stdout)
-
-        return _("☀️ **El tiempo en {location}:**\n```\n{weather_data}\n```").format(
-            location=location.title(),
-            weather_data=cleaned_output.strip()
-        )
+        return _("☀️ **El tiempo en {location}:**\n```\n{weather_data}\n```").format(location=location.title(), weather_data=cleaned_output.strip())
     except FileNotFoundError:
         return _("❌ Error: El comando `ansiweather` no se encuentra. Por favor, instálalo en el servidor.")
     except subprocess.CalledProcessError as e:
-        # Esto puede ocurrir si la ciudad no se encuentra
         error_output = re.sub(r'\x1b\[[0-9;]*m', '', e.stderr or e.stdout)
         return _("❌ Error al obtener el tiempo para `{location}`:\n```\n{error}\n```").format(location=location, error=error_output.strip())
     except Exception as e:
         logging.error(f"Error inesperado al ejecutar ansiweather: {e}")
         return _("❌ Error inesperado al obtener el tiempo: {error}").format(error=str(e))
+
+def run_backup_script(script_name: str, _) -> str:
+    config = cargar_configuracion()
+    script_path = config.get("backup_scripts", {}).get(script_name)
+    if not script_path:
+        return _("❌ El script de backup '{name}' no está permitido o no existe.").format(name=script_name)
+    script_path = os.path.expanduser(script_path)
+    if not os.path.exists(script_path):
+         return _("❌ Error: La ruta del script '{path}' no existe en el servidor.").format(path=script_path)
+    return _run_command([script_path], 900, _("✅ **Backup '{name}' finalizado con éxito:**").format(name=script_name), _("❌ **Error al ejecutar el backup '{name}':**").format(name=script_name), _)
+
+# --- NUEVAS FUNCIONES PARA FAIL2BAN ---
+def fail2ban_status(_, jail=None):
+    command = ['sudo', 'fail2ban-client', 'status']
+    if jail:
+        command.append(jail)
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=20, check=True)
+        output = proc.stdout.replace("`-", "").replace("|-", "").strip()
+        return _("🛡️ **Estado de Fail2Ban**:\n```\n{output}\n```").format(output=output)
+    except subprocess.CalledProcessError as e:
+        return _("❌ Error al obtener estado de Fail2Ban: `{error}`").format(error=e.stderr)
+    except Exception as e:
+        return _("❌ Error inesperado con Fail2Ban: {error}").format(error=e)
+
+def fail2ban_unban(ip: str, _):
+    config = cargar_configuracion()
+    jails = config.get('fail2ban_jails', [])
+    if not jails:
+        return _("⚠️ No hay jaulas de Fail2Ban definidas en `configbot.json`.")
+    results = []
+    for jail in jails:
+        command = ['sudo', 'fail2ban-client', 'set', jail, 'unbanip', ip]
+        try:
+            proc = subprocess.run(command, capture_output=True, text=True, timeout=15, check=True)
+            if "unbanned" in proc.stdout:
+                results.append(_("✅ IP `{ip}` desbloqueada de la jaula `{jail}`.").format(ip=ip, jail=jail))
+        except subprocess.CalledProcessError:
+            continue
+        except Exception as e:
+            results.append(_("❌ Error al intentar desbloquear en `{jail}`: {error}").format(jail=jail, error=e))
+    if not results:
+        return _("ℹ️ La IP `{ip}` no parece estar baneada en ninguna de las jaulas configuradas.").format(ip=ip)
+    return "\n".join(results)
+
+# --- NUEVAS FUNCIONES PARA MONITORIZACIÓN DE LOGS ---
+def _load_log_state():
+    if not os.path.exists(LOG_STATE_FILE):
+        return {}
+    try:
+        with open(LOG_STATE_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return {}
+
+def _save_log_state(state):
+    try:
+        with open(LOG_STATE_FILE, 'w') as f:
+            json.dump(state, f, indent=2)
+    except Exception as e:
+        logging.error(f"CRITICAL: No se pudo guardar el estado de monitorización de logs en {LOG_STATE_FILE}. Las alertas se repetirán. Verifique los permisos del fichero. Error: {e}")
+
+def check_watched_logs(_):
+    config = cargar_configuracion()
+    log_config = config.get('log_monitoring', {})
+    if not log_config.get('enabled', False):
+        return []
+
+    log_paths = config.get('allowed_logs', {})
+    state = _load_log_state()
+    alerts = []
+
+    for watched_log in log_config.get('watched_logs', []):
+        alias = watched_log.get('alias')
+        patterns = watched_log.get('patterns', [])
+        log_path = log_paths.get(alias)
+
+        if not log_path or not patterns:
+            continue
+            
+        if alias not in state:
+            state[alias] = {'last_pos': 0, 'inode': 0}
+
+        try:
+            stat_info = os.stat(log_path)
+            current_inode = stat_info.st_ino
+            current_size = stat_info.st_size
+            
+            last_inode = state[alias].get('inode', 0)
+            last_pos = state[alias].get('last_pos', 0)
+
+            if current_inode != last_inode or current_size < last_pos:
+                last_pos = 0
+                state[alias]['inode'] = current_inode
+
+            with open(log_path, 'r', errors='ignore') as f:
+                f.seek(last_pos)
+                new_lines = f.readlines()
+                state[alias]['last_pos'] = f.tell()
+
+                for line in new_lines:
+                    for pattern in patterns:
+                        if re.search(pattern, line, re.IGNORECASE):
+                            alert_msg = _("🚨 **Alerta de Log en `{alias}`**:\n\n```\n{line}\n```").format(alias=alias, line=line.strip())
+                            alerts.append(alert_msg)
+                            break
+        except FileNotFoundError:
+            logging.warning(f"Log no encontrado para monitorización: {log_path}")
+            continue
+        except Exception as e:
+            logging.error(f"Error al procesar el log {alias}: {e}")
+
+    _save_log_state(state)
+    return alerts
