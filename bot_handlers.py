@@ -892,7 +892,6 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Generar un timestamp para el nombre del fichero
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
         # Usamos 'filename_root' en lugar de '_' para evitar sobrescribir la función de traducción.
         filename_root, extension = os.path.splitext(original_name)
         

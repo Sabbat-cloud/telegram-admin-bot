@@ -1,5 +1,3 @@
-I can do that. Here is the complete, reformatted, and updated `README.md` file, which includes detailed, bilingually formatted instructions for all features, including the new script-sealing security measures.
-
 # 🤖 Telegram SysAdmin Bot
 
 A powerful and secure Telegram bot, written in Python, to manage your Linux servers remotely. Execute commands, manage services, monitor system health, perform backups, and much more, all from the comfort of your Telegram chat.
