@@ -19,6 +19,22 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configbot.json')
 USERS_FILE = os.path.join(os.path.dirname(__file__), 'users.json')
 LOG_STATE_FILE = os.path.join(os.path.dirname(__file__), 'log_monitoring_state.json')
 
+def cargar_secretos():
+    """Carga secretos desde un fichero .env seguro."""
+    secretos = {}
+    try:
+        # Apuntamos directamente a tu fichero bot.env
+        with open('/etc/telegram-bot/bot.env', 'r') as f:
+            for line in f:
+                # Ignoramos comentarios y líneas en blanco
+                if line.strip() and not line.strip().startswith('#'):
+                    # Dividimos la línea por el primer '=' que encuentre
+                    key, value = line.strip().split('=', 1)
+                    secretos[key] = value
+        return secretos
+    except Exception as e:
+        logging.critical(f"ERROR CRÍTICO: No se pudo cargar el fichero de secretos '/etc/telegram-bot/bot.env'. Error: {e}")
+        return None
 # --- CARGA Y GUARDADO DE CONFIGURACIÓN Y USUARIOS ---
 def cargar_configuracion():
     try:
@@ -34,7 +50,9 @@ def cargar_configuracion():
 def cargar_usuarios():
     try:
         with open(USERS_FILE, 'r') as f:
-            return json.load(f)
+            users_data = json.load(f)
+            logging.info(f"[LOAD_USERS] Fichero 'users.json' cargado. Super admin: {users_data.get('super_admin_id')}")
+            return users_data
     except FileNotFoundError:
         logging.error(f"Error: El archivo de usuarios '{USERS_FILE}' no se encontró.")
         return {}

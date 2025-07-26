@@ -1,11 +1,15 @@
-# Archivo de configuración con datos sensibles
+# Archivos de configuración con datos sensibles
 configbot.json
+users.json
+secrets.json
+*.env
 
 # Archivo de persistencia del bot
 bot_persistence.pickle
+bot_persistence.json # <-- AÑADIR ESTA LÍNEA
 
 # Archivos de log
-*.log
+*.log # <-- AÑADIR O MODIFICAR ESTA LÍNEA
 
 # Archivos de caché de Python
 __pycache__/
