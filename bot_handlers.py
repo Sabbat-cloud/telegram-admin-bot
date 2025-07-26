@@ -937,27 +937,43 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
 @rate_limit_and_deduplicate()
 async def get_file_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    if len(context.args) < 2 or context.args[0] not in ['imagenes', 'ficheros']: await update.message.reply_text(_("Uso: `/get <imagenes|ficheros> <nombre_archivo>`")); return
-    folder_key = "image_directory" if context.args[0] == 'imagenes' else "file_directory"
-    filename, config = " ".join(context.args[1:]), cargar_configuracion()
-    base_dir = os.path.expanduser(config.get(folder_key, ''))
-    
-    # Path Traversal Protection
-    file_path = os.path.abspath(os.path.join(base_dir, os.path.basename(filename)))
-    
-    if os.path.commonpath([file_path, os.path.abspath(base_dir)]) != os.path.abspath(base_dir):
-        await update.message.reply_text(_("❌ Acceso denegado."))
+    if len(context.args) < 2 or context.args[0] not in ['imagenes', 'ficheros']:
+        await update.message.reply_text(_("Uso: `/get <imagenes|ficheros> <nombre_archivo>`"))
         return
         
+    folder_key = "image_directory" if context.args[0] == 'imagenes' else "file_directory"
+    filename = " ".join(context.args[1:])
+    config = cargar_configuracion()
+    base_dir = os.path.expanduser(config.get(folder_key, ''))
+    
+    # --- INICIO DE LA MODIFICACIÓN DE SEGURIDAD ---
+    
+    # Normaliza la ruta base para una comparación segura
+    safe_base_dir = os.path.abspath(base_dir)
+    
+    # Usa os.path.basename para eliminar cualquier intento de traversal ('../') del nombre de archivo
+    safe_filename = os.path.basename(filename)
+    
+    # Construye la ruta final y la normaliza
+    file_path = os.path.abspath(os.path.join(safe_base_dir, safe_filename))
+    
+    # Comprobación estricta: la ruta final DEBE empezar con la ruta base segura.
+    if not file_path.startswith(safe_base_dir):
+        await update.message.reply_text(_("❌ Acceso denegado."))
+        logging.warning(f"Intento de Path Traversal bloqueado. Usuario: {update.effective_user.id}, Path: {filename}")
+        return
+        
+    # --- FIN DE LA MODIFICACIÓN DE SEGURIDAD ---
+        
     if os.path.exists(file_path):
-        await update.message.reply_text(_("🚀 Enviando `{name}`...").format(name=escape_markdown(filename)))
+        await update.message.reply_text(_("🚀 Enviando `{name}`...").format(name=escape_markdown(safe_filename)))
         try:
             with open(file_path, 'rb') as f:
                 await context.bot.send_document(chat_id=update.effective_chat.id, document=f)
         except Exception as e:
             await update.message.reply_text(_("❌ Error al enviar el archivo: `{err}`").format(err=escape_markdown(str(e))))
     else:
-        await update.message.reply_text(_("❌ El archivo `{name}` no se encuentra.").format(name=escape_markdown(filename)))
+        await update.message.reply_text(_("❌ El archivo `{name}` no se encuentra.").format(name=escape_markdown(safe_filename)))
 
 async def periodic_monitoring_check(context: ContextTypes.DEFAULT_TYPE):
     logging.info("Ejecutando comprobación de monitorización periódica...")

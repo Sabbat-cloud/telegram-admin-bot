@@ -237,12 +237,24 @@ def get_log_lines(log_alias: str, num_lines: int, _) -> str:
         return _("❌ El log '{alias}' no está permitido.").format(alias=log_alias)
     return _run_command(['tail', '-n', str(num_lines), log_path], 30, _("📜 **Últimas {num_lines} líneas de `{alias}`:**").format(num_lines=num_lines, alias=log_alias), _("Error al leer el log {alias}").format(alias=log_alias), _)
 
+
+def is_safe_grep_pattern(pattern: str) -> bool:
+    """
+    Valida que un patrón de búsqueda para grep sea seguro.
+    """
+    if not pattern or len(pattern) > 100: # Limita la longitud
+        return False
+    # Patrón que prohíbe metacaracteres complejos de regex como `+` o `*` que pueden causar ReDoS.
+    # Permite solo caracteres alfanuméricos, espacios, puntos, guiones, etc.
+    if re.search(r'[\\*+?(){}|\[\]\^$]', pattern):
+         logging.warning(f"Patrón de búsqueda bloqueado por contener metacaracteres peligrosos: {pattern}")
+         return False
+    return True
+
 # Se ha modificado la función search_log para hacerla segura.
 def search_log(log_alias: str, pattern: str, _) -> str:
-    config = cargar_configuracion()
-    log_path = config.get("allowed_logs", {}).get(log_alias)
-    if not log_path:
-        return _("❌ El log '{alias}' no está permitido.").format(alias=log_alias)
+    if not is_safe_grep_pattern(pattern):
+        return _("❌ El patrón de búsqueda contiene caracteres no permitidos o es demasiado complejo.")    
     try:
         # Se añade el argumento '--' antes del patrón del usuario.
         # Esto le indica a 'grep' que todo lo que sigue es un argumento posicional (el patrón de búsqueda)
