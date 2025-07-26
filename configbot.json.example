@@ -1,7 +1,7 @@
 {
     "telegram": {
     "token": "REMOVED_AND_SET_AS_ENVIRONMENT_VARIABLE",
-    "chat_id": "YOUR CHAT ID. ONLY NUMBER NO @NICKNAME",
+    "chat_id": "YOUR_CHAT_ID",
     "super_admin_id": "REMOVED_TO_USERS_JSON",
     "authorized_users": "REMOVED_TO_USERS_JSON",
     "enviar_reporte_periodico": false
@@ -12,8 +12,8 @@
     "flash_model": "gemini-1.5-flash-latest",
     "pro_model": "gemini-1.5-pro-latest"
   },
-  
-  
+
+
   "fail2ban_jails": [
     "sshd",
     "nginx-http-auth",
@@ -92,10 +92,10 @@
     "last_update_check": 0,
     "update_check_interval_hours": 24
   },
-  
+
   "servidores": [
     {
-      "nombre": "Servidor Principal",
+      "nombre": "onehostexample",
       "host": "localhost",
       "chequeos": {
         "ping": true,
@@ -122,7 +122,7 @@
       }
     },
     {
-      "nombre": "web example",
+      "nombre": "otherhostexample",
       "host": "sabbat.cloud",
       "chequeos": {
         "ping": true,
@@ -136,8 +136,8 @@
       }
     },
     {
-      "nombre": "example 2",
-      "host": "gooogle.com",
+      "nombre": "anotherweb",
+      "host": "google.com",
       "chequeos": {
         "ping": true,
         "puertos": {

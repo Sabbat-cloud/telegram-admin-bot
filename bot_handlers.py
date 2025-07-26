@@ -4,6 +4,7 @@
 import logging
 import os
 import re
+import ipaddress
 import subprocess
 import sys
 import time
@@ -85,16 +86,60 @@ def rate_limit_and_deduplicate(limit_seconds: int = 5):
     return decorator
 
 # --- AÑADIDO: Función de validación de entradas ---
-def is_valid_target(target: str) -> bool:
-    """Valida que el input parece un hostname, dominio o IP."""
-    if not target:
+def is_safe_grep_pattern(pattern: str) -> bool:
+    """
+    Valida que un patrón de búsqueda para grep sea razonablemente seguro,
+    evitando metacaracteres de expresiones regulares muy complejos o peligrosos.
+    """
+    if not pattern:
         return False
-    # Regex simple para evitar caracteres maliciosos. No es exhaustiva pero sí una buena primera barrera.
-    pattern = re.compile(r"^[a-zA-Z0-9\.\-_]+$")
-    if pattern.match(target) and len(target) < 256:
-        return True
-    return False
 
+    # Lista negra de caracteres o secuencias peligrosas que pueden causar un "ReDoS" (Regular Expression Denial of Service)
+    # o que simplemente no son necesarios para un uso normal.
+    # Ej: backreferences, lookarounds, etc.
+    blacklist = ['\\', '(', ')', '[', ']', '{', '}', '+', '*', '?', '^', '$']
+    
+    # Permitimos un conjunto básico de caracteres alfanuméricos y algunos símbolos seguros.
+    # Esta es una lista blanca.
+    whitelist_pattern = re.compile(r"^[a-zA-Z0-9\s\._\-:\",'/=]+$")
+
+    if not whitelist_pattern.fullmatch(pattern):
+        logging.warning(f"Patrón de búsqueda bloqueado por la lista blanca: {pattern}")
+        return False
+    
+    return True
+
+
+def is_valid_target(target: str) -> bool:
+    """
+    Valida de forma estricta que el 'target' sea una dirección IP válida (IPv4/IPv6)
+    o un nombre de host compatible con RFC 1123.
+    """
+    if not target or len(target) > 255:
+        return False
+
+    # 1. Validar si es una dirección IP
+    try:
+        ipaddress.ip_address(target)
+        # Si no lanza excepción, es una IP válida.
+        return True
+    except ValueError:
+        # No es una IP, continuamos para ver si es un hostname.
+        pass
+
+    # 2. Validar si es un nombre de host (hostname) según RFC 1123
+    # Un hostname no puede empezar o terminar con un guion.
+    if target.startswith('-') or target.endswith('-'):
+        return False
+    
+    # Expresión regular estricta para hostnames.
+    # Permite letras, números, guiones y puntos.
+    hostname_pattern = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+    
+    if hostname_pattern.fullmatch(target):
+        return True
+
+    return False
 # --- Teclados---
 def main_menu_keyboard(_):
     return InlineKeyboardMarkup([
@@ -522,32 +567,38 @@ async def processes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def systeminfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _handle_async_command(update, context, get_system_info_text, "ℹ️ Obteniendo información del sistema...")
 
-# --- MODIFICADO: Añadido control de concurrencia ---
+# --- MODIFICADO: Añadido control de concurrencia usando la nueva funcion sanitizadora-
 @authorized_only
 @rate_limit_and_deduplicate()
 async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    if not context.args:
-        available_logs = ", ".join(cargar_configuracion().get("allowed_logs", {}).keys())
-        await update.message.reply_text(_("Uso: `/logs <alias> [líneas]` o `/logs search <alias> <patrón>`\nDisponibles: `{logs}`").format(logs=available_logs), parse_mode='Markdown'); return
+    # ... (código existente) ...
 
     if context.args[0] == 'search':
         if len(context.args) < 3:
             await update.message.reply_text(_("Uso: `/logs search <alias> <patrón>`"), parse_mode='Markdown'); return
         
+        # << INICIO DE LA MODIFICACIÓN >>
+        alias_log = context.args[1]
+        search_pattern = " ".join(context.args[2:])
+
+        if not is_safe_grep_pattern(search_pattern):
+            await update.message.reply_text(_("❌ El patrón de búsqueda contiene caracteres no permitidos o potencialmente peligrosos."))
+            return
+        # << FIN DE LA MODIFICACIÓN >>
+
         if HEAVY_TASK_LOCK.locked():
             await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
             return
         async with HEAVY_TASK_LOCK:
             thinking_message = await update.message.reply_text("📜 Buscando en logs... (Puede tardar)")
-            result = await asyncio.to_thread(search_log, context.args[1], " ".join(context.args[2:]), _)
+            # Pasamos el alias y el patrón seguros a la función de búsqueda
+            result = await asyncio.to_thread(search_log, alias_log, search_pattern, _) 
     else:
-        thinking_message = await update.message.reply_text("📜 Obteniendo logs...")
-        num_lines = int(context.args[1]) if len(context.args) > 1 and context.args[1].isdigit() else 20
-        result = await asyncio.to_thread(get_log_lines, context.args[0], num_lines, _)
+        # ... (resto del código sin cambios) ...
+        pass
     
     await thinking_message.edit_text(result, parse_mode='Markdown')
-
 @authorized_only
 @rate_limit_and_deduplicate()
 async def docker_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -567,7 +618,12 @@ async def receive_weather_location(update: Update, context: ContextTypes.DEFAULT
     location = update.message.text
     thinking_message = await update.message.reply_text(f"🌦️ {_('Consultando el tiempo para')} `{location}`...")
     weather_report = await asyncio.to_thread(get_weather_text, location, _)
-    await thinking_message.edit_text(weather_report, parse_mode='Markdown')
+    #await thinking_message.edit_text(weather_report, parse_mode='Markdown')
+    await thinking_message.edit_text(
+            weather_report, 
+            parse_mode='Markdown',
+            reply_markup=main_menu_keyboard(_)
+    )
     return ConversationHandler.END
 
 # --- Comandos de IA (No bloqueantes) ---
@@ -800,24 +856,64 @@ async def listusers_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_lines.append(_("👑 *Super Admin*: `{id}`").format(id=user_id) if user_id == super_admin_id else _("👤 *Usuario*: `{id}`").format(id=user_id))
     await update.message.reply_text("\n".join(message_lines), parse_mode='Markdown')
 
+
 @authorized_only
 async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    config, is_photo = cargar_configuracion(), bool(update.message.photo)
-    dir_key = "image_directory" if is_photo else "file_directory"
-    file_to_dl = update.message.photo[-1] if is_photo else update.message.document
-    original_name = f"{file_to_dl.file_id}.jpg" if is_photo else file_to_dl.file_name
+    config = cargar_configuracion()
+    is_photo = bool(update.message.photo)
+
+    # Determinar el tipo de fichero y el directorio de destino
+    if is_photo:
+        dir_key = "image_directory"
+        file_to_dl = update.message.photo[-1] # La foto de mayor resolución
+        original_name = f"{file_to_dl.file_id}.jpg" # Las fotos no tienen nombre, usamos el ID
+    else:
+        dir_key = "file_directory"
+        file_to_dl = update.message.document
+        original_name = file_to_dl.file_name
+
     target_dir = config.get(dir_key)
-    if not target_dir: await update.message.reply_text(_("❌ La carpeta de destino `{key}` no está configurada.").format(key=dir_key)); return
-    expanded_dir, dest_path = os.path.expanduser(target_dir), os.path.join(expanded_dir, os.path.basename(original_name))
+    if not target_dir:
+        await update.message.reply_text(_("❌ La carpeta de destino `{key}` no está configurada.").format(key=dir_key))
+        return
+
     try:
+        # Generar un timestamp para el nombre del fichero
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
+        # Usamos 'filename_root' en lugar de '_' para evitar sobrescribir la función de traducción.
+        filename_root, extension = os.path.splitext(original_name)
+        
+        if not extension: # Si no hay extensión, ponemos una por defecto
+            extension = ".dat" if not is_photo else ".jpg"
+
+        # Crear el nuevo nombre de fichero seguro
+        prefix = "image" if is_photo else "file"
+        new_filename = f"{prefix}_{timestamp}{extension}"
+
+        expanded_dir = os.path.expanduser(target_dir)
+        dest_path = os.path.join(expanded_dir, new_filename)
+
         os.makedirs(expanded_dir, exist_ok=True)
         file = await context.bot.get_file(file_to_dl.file_id)
         await file.download_to_drive(dest_path)
-        logging.info(f"Archivo '{dest_path}' subido por {update.effective_user.id}")
-        await update.message.reply_text(_("✅ Archivo `{name}` guardado.").format(name=escape_markdown(os.path.basename(dest_path))))
+        
+        logging.info(f"Archivo '{original_name}' guardado como '{new_filename}' por {update.effective_user.id}")
+
+        # Ahora la variable `_` es la función correcta y esta llamada funcionará
+        success_message = _("✅ Archivo guardado con éxito.\n\n"
+                          "   - **Nombre Original:** `{orig}`\n"
+                          "   - **Guardado Como:** `{new}`").format(
+                              orig=escape_markdown(original_name), 
+                              new=escape_markdown(new_filename)
+                          )
+        await update.message.reply_text(success_message, parse_mode='Markdown')
+
     except Exception as e:
         logging.error(f"Error al subir archivo: {e}")
+        # Y esta llamada en el bloque de error también funcionará
         await update.message.reply_text(_("❌ Ocurrió un error: `{err}`").format(err=escape_markdown(str(e))))
 
 @authorized_only
