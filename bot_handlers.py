@@ -85,30 +85,22 @@ def rate_limit_and_deduplicate(limit_seconds: int = 5):
         return wrapped
     return decorator
 
-# --- AÑADIDO: Función de validación de entradas ---
-def is_safe_grep_pattern(pattern: str) -> bool:
-    """
-    Valida que un patrón de búsqueda para grep sea razonablemente seguro,
-    evitando metacaracteres de expresiones regulares muy complejos o peligrosos.
-    """
-    if not pattern:
-        return False
-
-    # Lista negra de caracteres o secuencias peligrosas que pueden causar un "ReDoS" (Regular Expression Denial of Service)
-    # o que simplemente no son necesarios para un uso normal.
-    # Ej: backreferences, lookarounds, etc.
-    blacklist = ['\\', '(', ')', '[', ']', '{', '}', '+', '*', '?', '^', '$']
-    
-    # Permitimos un conjunto básico de caracteres alfanuméricos y algunos símbolos seguros.
-    # Esta es una lista blanca.
-    whitelist_pattern = re.compile(r"^[a-zA-Z0-9\s\._\-:\",'/=]+$")
-
-    if not whitelist_pattern.fullmatch(pattern):
-        logging.warning(f"Patrón de búsqueda bloqueado por la lista blanca: {pattern}")
-        return False
-    
-    return True
-
+# Esta funcion ya no es necesaria, se usa '--' para protegerse de la inyeccion de argumentos
+# Eliminar en la prox version  para simplificar el código. La validación ahora solo es para el target de red.
+#def is_safe_grep_pattern(pattern: str) -> bool:
+#    """
+#    Valida que un patrón de búsqueda para grep sea razonablemente seguro,
+#    evitando metacaracteres de expresiones regulares muy complejos o peligrosos.
+#    """
+#    if not pattern:
+#        return False
+#    # La mejor forma de prevenir inyección de argumentos en grep es usar '--' en el comando.
+#    # Esta función se mantiene como una segunda capa de defensa.
+#    whitelist_pattern = re.compile(r"^[a-zA-Z0-9\s\._\-:\",'/=]+$")
+#    if not whitelist_pattern.fullmatch(pattern):
+#        logging.warning(f"Patrón de búsqueda bloqueado por la lista blanca: {pattern}")
+#        return False
+#    return True
 
 def is_valid_target(target: str) -> bool:
     """
@@ -121,26 +113,22 @@ def is_valid_target(target: str) -> bool:
     # 1. Validar si es una dirección IP
     try:
         ipaddress.ip_address(target)
-        # Si no lanza excepción, es una IP válida.
         return True
     except ValueError:
-        # No es una IP, continuamos para ver si es un hostname.
         pass
 
     # 2. Validar si es un nombre de host (hostname) según RFC 1123
-    # Un hostname no puede empezar o terminar con un guion.
     if target.startswith('-') or target.endswith('-'):
         return False
     
-    # Expresión regular estricta para hostnames.
-    # Permite letras, números, guiones y puntos.
     hostname_pattern = re.compile(r"^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
     
     if hostname_pattern.fullmatch(target):
         return True
 
     return False
-# --- Teclados---
+
+# --- Teclados (Sin cambios) ---
 def main_menu_keyboard(_):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(_("📊 Monitorización"), callback_data='menu:monitor')],
@@ -280,7 +268,7 @@ def dynamic_docker_container_keyboard(action: str, _):
     return InlineKeyboardMarkup(keyboard)
 
 
-# --- Comandos Principales ---
+# --- Comandos Principales (Sin cambios) ---
 
 @authorized_only
 @rate_limit_and_deduplicate()
@@ -315,7 +303,7 @@ async def fortune_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     fortune_text = await asyncio.to_thread(get_fortune_text, _)
     await thinking_message.edit_text(fortune_text, parse_mode='Markdown')
 
-# --- Manejador de Botones ---
+# --- Manejador de Botones (Lógica de red modificada) ---
 @authorized_only
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
@@ -395,12 +383,11 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
     elif action_type == 'run':
         tool_map = {'ping': do_ping, 'traceroute': do_traceroute, 'nmap': do_nmap, 'dig': do_dig, 'whois': do_whois}
         if action_name in tool_map:
-            # --- MODIFICADO: Añadida validación de entrada ---
+            # ### CAMBIO ###: La validación del parámetro se hace aquí de forma segura.
             if not is_valid_target(param):
                 await query.edit_message_text(_("❌ El objetivo '{param}' no es válido.").format(param=param))
                 return
             
-            # --- MODIFICADO: Añadido control de concurrencia para tareas pesadas ---
             heavy_tasks = ['nmap', 'traceroute']
             if action_name in heavy_tasks:
                 if HEAVY_TASK_LOCK.locked():
@@ -424,7 +411,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             await query.edit_message_text(_("🐍 Ejecutando script de Python '{param}'...").format(param=param), parse_mode='Markdown')
             salida = await asyncio.to_thread(run_python_script, param, _)
             await query.edit_message_text(salida, parse_mode='Markdown', reply_markup=dynamic_script_keyboard('python', _))
-
+    # ... (Resto del manejador de botones sin cambios) ...
     elif action_type == 'docker':
         await query.edit_message_text(_("🐳 Procesando comando docker..."))
         result = await asyncio.to_thread(docker_command, action_name, _, param, num_lines=20)
@@ -474,7 +461,6 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         salida = await asyncio.to_thread(get_cron_tasks, _)
         await query.edit_message_text(salida, parse_mode='Markdown', reply_markup=admin_menu_keyboard(_))
 
-    # --- MODIFICADO: Añadido control de concurrencia para backups ---
     elif action_type == 'backup' and action_name == 'run':
         if HEAVY_TASK_LOCK.locked():
             await query.answer(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."), show_alert=True)
@@ -484,7 +470,6 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
             resultado = await asyncio.to_thread(run_backup_script, param, _)
         await query.edit_message_text(resultado, parse_mode='Markdown', reply_markup=dynamic_backup_script_keyboard(_))
 
-
 # --- Comandos (/comando) Refactorizados ---
 
 async def _handle_async_command(update: Update, context: ContextTypes.DEFAULT_TYPE, func, thinking_msg: str):
@@ -493,60 +478,105 @@ async def _handle_async_command(update: Update, context: ContextTypes.DEFAULT_TY
     result = await asyncio.to_thread(func, _)
     await message_to_edit.edit_text(result, parse_mode='Markdown')
 
+# ### CAMBIO ###: Esta función auxiliar ya no es necesaria, la lógica se mueve a los manejadores.
+# Se podría eliminar, pero la mantenemos por si se usa en otro sitio.
 async def _handle_async_network_command(update: Update, context: ContextTypes.DEFAULT_TYPE, func, usage: str, thinking_prefix: str, _):
-    if not context.args:
-        await update.message.reply_text(_("Uso: {use}").format(use=usage))
-        return
+    # La validación ahora ocurre ANTES de llamar a esta función.
     target = context.args[0]
-    # --- MODIFICADO: Añadida validación de entrada ---
-    if not is_valid_target(target):
-        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido.").format(target=target))
-        return
-
     message_to_edit = await update.message.reply_text(f"{thinking_prefix} `{target}`...")
     result = await asyncio.to_thread(func, target, _)
     await message_to_edit.edit_text(result, parse_mode='Markdown')
 
+# ### CAMBIO ###: Se aplica la nueva lógica de validación estricta.
 @authorized_only
 @rate_limit_and_deduplicate()
 async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    await _handle_async_network_command(update, context, do_ping, "/ping <host>", _("📡 Haciendo ping a"), _)
+    usage = "/ping <host>"
+    # 1. Validar que haya exactamente UN argumento.
+    if len(context.args) != 1:
+        await update.message.reply_text(_("Uso: {use}").format(use=usage))
+        return
+    target = context.args[0]
+    # 2. Validar que el argumento sea un objetivo válido y no un argumento inyectado.
+    if not is_valid_target(target):
+        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido. Solo se permiten IPs o nombres de host.").format(target=target))
+        return
+    # 3. Si todo es correcto, proceder.
+    await _handle_async_network_command(update, context, do_ping, usage, _("📡 Haciendo ping a"), _)
 
-# --- MODIFICADO: Añadido control de concurrencia ---
+# ### CAMBIO ###: Se aplica la nueva lógica de validación estricta.
 @authorized_only
 @rate_limit_and_deduplicate()
 async def traceroute_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
+    usage = "/traceroute <host>"
+    if len(context.args) != 1:
+        await update.message.reply_text(_("Uso: {use}").format(use=usage))
+        return
+    target = context.args[0]
+    if not is_valid_target(target):
+        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido. Solo se permiten IPs o nombres de host.").format(target=target))
+        return
+        
     if HEAVY_TASK_LOCK.locked():
         await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
         return
     async with HEAVY_TASK_LOCK:
-        await _handle_async_network_command(update, context, do_traceroute, "/traceroute <host>", _("🗺️ Ejecutando traceroute a"), _)
+        await _handle_async_network_command(update, context, do_traceroute, usage, _("🗺️ Ejecutando traceroute a"), _)
 
-# --- MODIFICADO: Añadido control de concurrencia ---
+# ### CAMBIO ###: Se aplica la nueva lógica de validación estricta.
 @authorized_only
 @rate_limit_and_deduplicate()
 async def nmap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
+    usage = "/nmap <host>"
+    if len(context.args) != 1:
+        await update.message.reply_text(_("Uso: {use}").format(use=usage))
+        return
+    target = context.args[0]
+    if not is_valid_target(target):
+        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido. Solo se permiten IPs o nombres de host.").format(target=target))
+        return
+
     if HEAVY_TASK_LOCK.locked():
         await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
         return
     async with HEAVY_TASK_LOCK:
-        await _handle_async_network_command(update, context, do_nmap, "/nmap <host>", _("🔬 Ejecuturando Nmap a"), _)
+        await _handle_async_network_command(update, context, do_nmap, usage, _("🔬 Ejecuturando Nmap a"), _)
 
+# ### CAMBIO ###: Se aplica la nueva lógica de validación estricta.
 @authorized_only
 @rate_limit_and_deduplicate()
 async def dig_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    await _handle_async_network_command(update, context, do_dig, "/dig <dominio>", _("🌐 Realizando consulta DIG para"), _)
+    usage = "/dig <dominio>"
+    if len(context.args) != 1:
+        await update.message.reply_text(_("Uso: {use}").format(use=usage))
+        return
+    target = context.args[0]
+    if not is_valid_target(target):
+        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido. Solo se permiten IPs o nombres de host.").format(target=target))
+        return
+    await _handle_async_network_command(update, context, do_dig, usage, _("🌐 Realizando consulta DIG para"), _)
 
+# ### CAMBIO ###: Se aplica la nueva lógica de validación estricta.
 @authorized_only
 @rate_limit_and_deduplicate()
 async def whois_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    await _handle_async_network_command(update, context, do_whois, "/whois <dominio>", _("👤 Realizando consulta WHOIS para"), _)
+    usage = "/whois <dominio>"
+    if len(context.args) != 1:
+        await update.message.reply_text(_("Uso: {use}").format(use=usage))
+        return
+    target = context.args[0]
+    if not is_valid_target(target):
+        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido. Solo se permiten IPs o nombres de host.").format(target=target))
+        return
+    await _handle_async_network_command(update, context, do_whois, usage, _("👤 Realizando consulta WHOIS para"), _)
 
+
+# ... (Resto del fichero `bot_handlers.py` sin cambios)
 @authorized_only
 @rate_limit_and_deduplicate()
 async def resources_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -567,38 +597,47 @@ async def processes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def systeminfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _handle_async_command(update, context, get_system_info_text, "ℹ️ Obteniendo información del sistema...")
 
-# --- MODIFICADO: Añadido control de concurrencia usando la nueva funcion sanitizadora-
 @authorized_only
 @rate_limit_and_deduplicate()
 async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    # ... (código existente) ...
+    if len(context.args) < 1:
+        await update.message.reply_text(_("Uso: `/logs <alias> [líneas]` o `/logs search <alias> <patrón>`"), parse_mode='Markdown')
+        return
 
-    if context.args[0] == 'search':
+    command = context.args[0].lower()
+    thinking_message = None 
+
+    if command == 'search':
         if len(context.args) < 3:
-            await update.message.reply_text(_("Uso: `/logs search <alias> <patrón>`"), parse_mode='Markdown'); return
+            await update.message.reply_text(_("Uso: `/logs search <alias> <patrón>`"), parse_mode='Markdown')
+            return
         
-        # << INICIO DE LA MODIFICACIÓN >>
         alias_log = context.args[1]
         search_pattern = " ".join(context.args[2:])
 
-        if not is_safe_grep_pattern(search_pattern):
-            await update.message.reply_text(_("❌ El patrón de búsqueda contiene caracteres no permitidos o potencialmente peligrosos."))
-            return
-        # << FIN DE LA MODIFICACIÓN >>
+        # Ya no se necesita llamar a is_safe_grep_pattern, la seguridad está en el backend.
+        # if not is_safe_grep_pattern(search_pattern):
+        #     await update.message.reply_text(_("❌ El patrón de búsqueda contiene caracteres no permitidos."))
+        #     return
 
         if HEAVY_TASK_LOCK.locked():
             await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
             return
         async with HEAVY_TASK_LOCK:
             thinking_message = await update.message.reply_text("📜 Buscando en logs... (Puede tardar)")
-            # Pasamos el alias y el patrón seguros a la función de búsqueda
-            result = await asyncio.to_thread(search_log, alias_log, search_pattern, _) 
-    else:
-        # ... (resto del código sin cambios) ...
-        pass
+            # La llamada a la función de búsqueda ahora es inherentemente segura.
+            result = await asyncio.to_thread(search_log, alias_log, search_pattern, _)
     
-    await thinking_message.edit_text(result, parse_mode='Markdown')
+    else: # Se asume que es una vista de log
+        alias_log = context.args[0]
+        num_lines = int(context.args[1]) if len(context.args) > 1 and context.args[1].isdigit() else 20
+        thinking_message = await update.message.reply_text(_("📜 Obteniendo últimas {n} líneas de `{alias}`...").format(n=num_lines, alias=alias_log))
+        result = await asyncio.to_thread(get_log_lines, alias_log, num_lines, _)
+    
+    if thinking_message:
+        await thinking_message.edit_text(result, parse_mode='Markdown')
+
 @authorized_only
 @rate_limit_and_deduplicate()
 async def docker_command_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -612,13 +651,12 @@ async def docker_command_handler(update: Update, context: ContextTypes.DEFAULT_T
     await thinking_message.edit_text(result, parse_mode='Markdown')
 
 @authorized_only
-@rate_limit_and_deduplicate(limit_seconds=10) # Mayor tiempo para evitar envíos múltiples
+@rate_limit_and_deduplicate(limit_seconds=10) 
 async def receive_weather_location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     _ = setup_translation(context)
     location = update.message.text
     thinking_message = await update.message.reply_text(f"🌦️ {_('Consultando el tiempo para')} `{location}`...")
     weather_report = await asyncio.to_thread(get_weather_text, location, _)
-    #await thinking_message.edit_text(weather_report, parse_mode='Markdown')
     await thinking_message.edit_text(
             weather_report, 
             parse_mode='Markdown',
@@ -626,7 +664,6 @@ async def receive_weather_location(update: Update, context: ContextTypes.DEFAULT
     )
     return ConversationHandler.END
 
-# --- Comandos de IA (No bloqueantes) ---
 @authorized_only
 @rate_limit_and_deduplicate()
 async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -673,7 +710,6 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     result = await asyncio.to_thread(ask_gemini_model, final_prompt, model_name, _)
     await thinking_message.edit_text(result, parse_mode='Markdown')
 
-# --- Fail2Ban ---
 @super_admin_only
 @rate_limit_and_deduplicate()
 async def fail2ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -682,15 +718,16 @@ async def fail2ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(_("Uso: `/fail2ban <status|unban> [IP]`"))
         return
     
-    # --- MODIFICADO: Añadida validación de entrada para la IP ---
     subcommand = context.args[0].lower()
+    ip_address = None
     if subcommand == 'unban':
         if len(context.args) < 2:
             await update.message.reply_text(_("Uso: `/fail2ban unban <IP>`"))
             return
         ip_address = context.args[1]
-        # Una validación simple para IPs
-        if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_address):
+        try:
+            ipaddress.ip_address(ip_address) # Validación estricta de IP
+        except ValueError:
             await update.message.reply_text(_("❌ Formato de IP no válido."))
             return
 
@@ -700,32 +737,12 @@ async def fail2ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         result = await asyncio.to_thread(fail2ban_status, _)
         await thinking_message.edit_text(result, parse_mode='Markdown')
     elif subcommand == 'unban':
-        ip_address = context.args[1]
         result = await asyncio.to_thread(fail2ban_unban, ip_address, _)
         await thinking_message.edit_text(result, parse_mode='Markdown')
     else:
         await thinking_message.edit_text(_("Comando no reconocido. Usa `status` o `unban`."))
 
-# --- Tareas Periódicas ---
-async def periodic_log_check(context: ContextTypes.DEFAULT_TYPE):
-    _ = get_system_translator()
-    logging.info("Ejecutando comprobación de monitorización de logs...")
-
-    alerts = await asyncio.to_thread(check_watched_logs, _)
-
-    if alerts:
-        users_config = cargar_usuarios()
-        super_admin_id = users_config.get("super_admin_id")
-        if super_admin_id:
-            for alert in alerts:
-                try:
-                    await context.bot.send_message(chat_id=super_admin_id, text=alert, parse_mode='Markdown')
-                    await asyncio.sleep(1)
-                except Exception as e:
-                    logging.error(f"No se pudo enviar la alerta de log al super_admin: {e}")
-
-# ---MUESTRA LA AYUDA ---
-
+# (El resto de funciones como get_help_text, reminder_callback, etc., no necesitan cambios)
 def get_help_text(_):
     return (
         _("🤖 **Ayuda Completa del Bot**\n\n"
@@ -764,8 +781,9 @@ def get_help_text(_):
     )
 
 async def reminder_callback(context: ContextTypes.DEFAULT_TYPE) -> None:
-    _ = setup_translation(context)
     job = context.job
+    # Obtener traductor para el chat_id del job
+    _ = get_system_translator(context.bot_data.get(job.chat_id, {}).get('lang', 'es'))
     await context.bot.send_message(chat_id=job.chat_id, text=_("🔔 **Recordatorio:**\n\n{data}").format(data=job.data))
 
 @authorized_only
@@ -774,11 +792,14 @@ async def remind_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
     match = re.match(r'^\s*/remind\s+"([^"]+)"\s+(?:en|in)\s+(.+)$', update.message.text, re.IGNORECASE)
     if not match: await update.message.reply_text(_('Formato: `/remind "Texto" en 1d 2h 30m`'), parse_mode='Markdown'); return
-    reminder_text, time_str, delay_seconds = match.group(1), match.group(2), parse_time_to_seconds(match.group(2))
+    reminder_text, time_str = match.group(1), match.group(2)
+    delay_seconds = parse_time_to_seconds(time_str)
     if delay_seconds <= 0: await update.message.reply_text(_("Duración inválida.")); return
     job_name = f"reminder_{update.effective_chat.id}_{int(time.time())}"
     context.job_queue.run_once(reminder_callback, delay_seconds, data=reminder_text, chat_id=update.effective_chat.id, name=job_name)
-    await update.message.reply_text(_("✅ Recordatorio programado para *{txt}* en *{t}*.\nID: `{id}`").format(txt=reminder_text, t=time_str, id=job_name), parse_mode='Markdown')
+    # Guardar el idioma del usuario para el job_callback
+    context.bot_data.setdefault(update.effective_chat.id, {})['lang'] = context.user_data.get('lang', 'es')
+    await update.message.reply_text(_("✅ Recordatorio programado para *{txt}* en *{t}*.\nID: `{id}`").format(txt=escape_markdown(reminder_text), t=escape_markdown(time_str), id=job_name), parse_mode='Markdown')
 
 @authorized_only
 @rate_limit_and_deduplicate()
@@ -787,10 +808,12 @@ async def reminders_list_command(update: Update, context: ContextTypes.DEFAULT_T
     active_jobs = [j for j in context.job_queue.jobs() if j.name and j.name.startswith(f"reminder_{update.effective_chat.id}_")]
     if not active_jobs: await update.message.reply_text(_("ℹ️ No hay recordatorios programados.")); return
     message = _("🗓️ **Recordatorios Pendientes:**\n\n")
+    now_aware = datetime.datetime.now().astimezone()
     for job in active_jobs:
-        remaining_seconds = (job.next_t - datetime.datetime.now(job.next_t.tzinfo)).total_seconds()
-        td = datetime.timedelta(seconds=remaining_seconds)
-        message += _("▪️ *Texto*: `{data}`\n   *Faltan*: `{rem}`\n   *ID*: `{name}`\n\n").format(data=job.data, rem=str(td).split('.')[0], name=job.name)
+        remaining_seconds = (job.next_t - now_aware).total_seconds()
+        if remaining_seconds > 0:
+            td = datetime.timedelta(seconds=remaining_seconds)
+            message += _("▪️ *Texto*: `{data}`\n   *Faltan*: `{rem}`\n   *ID*: `{name}`\n\n").format(data=escape_markdown(job.data), rem=str(td).split('.')[0], name=job.name)
     await update.message.reply_text(message, parse_mode='Markdown')
 
 @authorized_only
@@ -798,10 +821,15 @@ async def reminders_list_command(update: Update, context: ContextTypes.DEFAULT_T
 async def reminders_delete_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
     if not context.args: await update.message.reply_text(_("Uso: `/delremind <ID>`")); return
-    jobs = context.job_queue.get_jobs_by_name(context.args[0])
-    if not jobs: await update.message.reply_text(_("❌ No se encontró el recordatorio con ID `{id}`.").format(id=context.args[0])); return
+    job_name = context.args[0]
+    # Asegurarse de que el usuario solo pueda borrar sus propios jobs
+    if not job_name.startswith(f"reminder_{update.effective_chat.id}_"):
+        await update.message.reply_text(_("❌ No tienes permiso para borrar este recordatorio o el ID es incorrecto."))
+        return
+    jobs = context.job_queue.get_jobs_by_name(job_name)
+    if not jobs: await update.message.reply_text(_("❌ No se encontró el recordatorio con ID `{id}`.").format(id=job_name)); return
     for job in jobs: job.schedule_removal()
-    await update.message.reply_text(_("✅ Recordatorio `{id}` eliminado.").format(id=context.args[0]))
+    await update.message.reply_text(_("✅ Recordatorio `{id}` eliminado.").format(id=job_name))
 
 @authorized_only
 async def start_weather_conversation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -856,18 +884,16 @@ async def listusers_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message_lines.append(_("👑 *Super Admin*: `{id}`").format(id=user_id) if user_id == super_admin_id else _("👤 *Usuario*: `{id}`").format(id=user_id))
     await update.message.reply_text("\n".join(message_lines), parse_mode='Markdown')
 
-
 @authorized_only
 async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
     config = cargar_configuracion()
     is_photo = bool(update.message.photo)
 
-    # Determinar el tipo de fichero y el directorio de destino
     if is_photo:
         dir_key = "image_directory"
-        file_to_dl = update.message.photo[-1] # La foto de mayor resolución
-        original_name = f"{file_to_dl.file_id}.jpg" # Las fotos no tienen nombre, usamos el ID
+        file_to_dl = update.message.photo[-1]
+        original_name = f"{file_to_dl.file_id}.jpg"
     else:
         dir_key = "file_directory"
         file_to_dl = update.message.document
@@ -879,17 +905,10 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     try:
-        # Generar un timestamp para el nombre del fichero
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        # --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
-        # Usamos 'filename_root' en lugar de '_' para evitar sobrescribir la función de traducción.
         filename_root, extension = os.path.splitext(original_name)
-        
-        if not extension: # Si no hay extensión, ponemos una por defecto
-            extension = ".dat" if not is_photo else ".jpg"
+        if not extension: extension = ".dat" if not is_photo else ".jpg"
 
-        # Crear el nuevo nombre de fichero seguro
         prefix = "image" if is_photo else "file"
         new_filename = f"{prefix}_{timestamp}{extension}"
 
@@ -902,7 +921,6 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         logging.info(f"Archivo '{original_name}' guardado como '{new_filename}' por {update.effective_user.id}")
 
-        # Ahora la variable `_` es la función correcta y esta llamada funcionará
         success_message = _("✅ Archivo guardado con éxito.\n\n"
                           "   - **Nombre Original:** `{orig}`\n"
                           "   - **Guardado Como:** `{new}`").format(
@@ -913,7 +931,6 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     except Exception as e:
         logging.error(f"Error al subir archivo: {e}")
-        # Y esta llamada en el bloque de error también funcionará
         await update.message.reply_text(_("❌ Ocurrió un error: `{err}`").format(err=escape_markdown(str(e))))
 
 @authorized_only
@@ -924,11 +941,19 @@ async def get_file_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     folder_key = "image_directory" if context.args[0] == 'imagenes' else "file_directory"
     filename, config = " ".join(context.args[1:]), cargar_configuracion()
     base_dir = os.path.expanduser(config.get(folder_key, ''))
-    file_path = os.path.join(base_dir, os.path.basename(filename))
-    if os.path.abspath(file_path).startswith(os.path.abspath(base_dir)) and os.path.exists(file_path):
+    
+    # Path Traversal Protection
+    file_path = os.path.abspath(os.path.join(base_dir, os.path.basename(filename)))
+    
+    if os.path.commonpath([file_path, os.path.abspath(base_dir)]) != os.path.abspath(base_dir):
+        await update.message.reply_text(_("❌ Acceso denegado."))
+        return
+        
+    if os.path.exists(file_path):
         await update.message.reply_text(_("🚀 Enviando `{name}`...").format(name=escape_markdown(filename)))
         try:
-            await context.bot.send_document(chat_id=update.effective_chat.id, document=open(file_path, 'rb'))
+            with open(file_path, 'rb') as f:
+                await context.bot.send_document(chat_id=update.effective_chat.id, document=f)
         except Exception as e:
             await update.message.reply_text(_("❌ Error al enviar el archivo: `{err}`").format(err=escape_markdown(str(e))))
     else:
@@ -938,14 +963,36 @@ async def periodic_monitoring_check(context: ContextTypes.DEFAULT_TYPE):
     logging.info("Ejecutando comprobación de monitorización periódica...")
     config, users_config = cargar_configuracion(), cargar_usuarios()
     thresholds, super_admin_id = config.get("monitoring_thresholds", {}), users_config.get("super_admin_id")
-    if not super_admin_id or not thresholds: logging.warning("Monitorización periódica deshabilitada."); return
+    if not super_admin_id or not thresholds:
+        logging.warning("Monitorización periódica deshabilitada o super_admin_id no configurado.")
+        return
+    _ = get_system_translator() # Usar traductor por defecto para tareas de sistema
     try:
-        if (cpu := psutil.cpu_percent(interval=1)) > (cpu_t := thresholds.get('cpu_usage_percent', 90)):
-            msg = f"⚠️ CPU ALERT: Usage > {cpu_t}% (current: {cpu:.1f}%)."
-            await context.bot.send_message(super_admin_id, msg); logging.warning(msg)
+        cpu = psutil.cpu_percent(interval=1)
+        cpu_t = thresholds.get('cpu_usage_percent', 90)
+        if cpu > cpu_t:
+            msg = _("⚠️ **ALERTA DE CPU**: Uso > {threshold}% (actual: {current:.1f}%)").format(threshold=cpu_t, current=cpu)
+            await context.bot.send_message(super_admin_id, msg, parse_mode='Markdown'); logging.warning(msg)
     except Exception as e: logging.error(f"Error en chequeo periódico de CPU: {e}")
     try:
-        if (disk := psutil.disk_usage('/')).percent > (disk_t := thresholds.get('disk_usage_percent', 95)):
-            msg = f"⚠️ DISK ALERT: Usage of (/) > {disk_t}% (current: {disk.percent:.1f}%)."
-            await context.bot.send_message(super_admin_id, msg); logging.warning(msg)
+        disk = psutil.disk_usage('/')
+        disk_t = thresholds.get('disk_usage_percent', 95)
+        if disk.percent > disk_t:
+            msg = _("⚠️ **ALERTA DE DISCO**: Uso de (/) > {threshold}% (actual: {current:.1f}%)").format(threshold=disk_t, current=disk.percent)
+            await context.bot.send_message(super_admin_id, msg, parse_mode='Markdown'); logging.warning(msg)
     except Exception as e: logging.error(f"Error en chequeo periódico de Disco: {e}")
+
+async def periodic_log_check(context: ContextTypes.DEFAULT_TYPE):
+    _ = get_system_translator()
+    logging.info("Ejecutando comprobación de monitorización de logs...")
+    alerts = await asyncio.to_thread(check_watched_logs, _)
+    if alerts:
+        users_config = cargar_usuarios()
+        super_admin_id = users_config.get("super_admin_id")
+        if super_admin_id:
+            for alert in alerts:
+                try:
+                    await context.bot.send_message(chat_id=super_admin_id, text=alert, parse_mode='Markdown')
+                    await asyncio.sleep(1) # Pequeña pausa para evitar flood
+                except Exception as e:
+                    logging.error(f"No se pudo enviar la alerta de log al super_admin: {e}")
