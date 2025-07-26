@@ -198,7 +198,8 @@ def do_traceroute(host: str, _) -> str:
     return _run_command(command, 60, _("🗺️ **Resultado de Traceroute a `{host}`:**").format(host=host), _("Error inesperado de traceroute"), _)
 
 def do_nmap(host: str, _) -> str:
-    return _run_command(['nmap', '-A', host], 600, _("🔬 **Resultado de Nmap -A a `{host}`:**").format(host=host), _("Error inesperado de Nmap"), _)
+    # Timeout reducido de 600 a 180 segundos
+    return _run_command(['nmap', '-A', host], 180, _("🔬 **Resultado de Nmap -A a `{host}`:**").format(host=host), _("Error inesperado de Nmap"), _)
 
 def do_dig(domain: str, _) -> str:
     return _run_command(['dig', domain], 30, _("🌐 **Resultado de DIG para `{domain}`:**").format(domain=domain), _("Error inesperado de DIG"), _)
@@ -242,6 +243,7 @@ def search_log(log_alias: str, pattern: str, _) -> str:
     if not log_path:
         return _("❌ El log '{alias}' no está permitido.").format(alias=log_alias)
     try:
+        # Se mantiene un timeout generoso (60s) porque grep puede tardar, pero se controlará la concurrencia.
         proc = subprocess.run(['grep', '-i', pattern, log_path], capture_output=True, text=True, timeout=60)
         if proc.returncode == 1:
             return _("🔍 No se encontraron coincidencias para '{pattern}' en `{alias}`.").format(pattern=pattern, alias=log_alias)
@@ -347,6 +349,7 @@ def run_backup_script(script_name: str, _) -> str:
     script_path = os.path.expanduser(script_path)
     if not os.path.exists(script_path):
          return _("❌ Error: La ruta del script '{path}' no existe en el servidor.").format(path=script_path)
+    # Los backups pueden tardar, 900s (15min) es un timeout razonable que se controlará con el lock.
     return _run_command([script_path], 900, _("✅ **Backup '{name}' finalizado con éxito:**").format(name=script_name), _("❌ **Error al ejecutar el backup '{name}':**").format(name=script_name), _)
 
 # --- NUEVAS FUNCIONES PARA FAIL2BAN ---
@@ -417,7 +420,7 @@ def check_watched_logs(_):
 
         if not log_path or not patterns:
             continue
-            
+
         if alias not in state:
             state[alias] = {'last_pos': 0, 'inode': 0}
 
@@ -425,7 +428,7 @@ def check_watched_logs(_):
             stat_info = os.stat(log_path)
             current_inode = stat_info.st_ino
             current_size = stat_info.st_size
-            
+
             last_inode = state[alias].get('inode', 0)
             last_pos = state[alias].get('last_pos', 0)
 

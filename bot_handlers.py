@@ -18,6 +18,9 @@ from telegram.helpers import escape_markdown
 from core_functions import *
 from localization import setup_translation, get_system_translator
 
+# --- AÑADIDO: Lock para tareas pesadas para evitar DoS ---
+HEAVY_TASK_LOCK = asyncio.Lock()
+
 # --- Definición de estados para la conversación ---
 AWAITING_LOCATION = 1
 
@@ -66,7 +69,7 @@ def rate_limit_and_deduplicate(limit_seconds: int = 5):
             user_id = update.effective_user.id
             current_time = time.time()
             message_text = update.message.text
-            
+
             last_message = context.user_data.get('last_message', {})
             last_text = last_message.get('text')
             last_time = last_message.get('time', 0)
@@ -76,10 +79,21 @@ def rate_limit_and_deduplicate(limit_seconds: int = 5):
                 return
 
             context.user_data['last_message'] = {'text': message_text, 'time': current_time}
-            
+
             return await func(update, context, *args, **kwargs)
         return wrapped
     return decorator
+
+# --- AÑADIDO: Función de validación de entradas ---
+def is_valid_target(target: str) -> bool:
+    """Valida que el input parece un hostname, dominio o IP."""
+    if not target:
+        return False
+    # Regex simple para evitar caracteres maliciosos. No es exhaustiva pero sí una buena primera barrera.
+    pattern = re.compile(r"^[a-zA-Z0-9\.\-_]+$")
+    if pattern.match(target) and len(target) < 256:
+        return True
+    return False
 
 # --- Teclados---
 def main_menu_keyboard(_):
@@ -259,7 +273,6 @@ async def fortune_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Manejador de Botones ---
 @authorized_only
 async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # ... (código sin cambios)
     _ = setup_translation(context)
     query = update.callback_query
     await query.answer()
@@ -323,7 +336,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
 
     parts = data.split(':', 2)
     action_type, action_name, param = parts[0], parts[1], (parts[2] if len(parts) > 2 else None)
-    
+
     monitor_map = {
         'status_all': get_status_report_text, 'resources': get_resources_text,
         'disk': get_disk_usage_text, 'processes': get_processes_text, 'systeminfo': get_system_info_text,
@@ -337,15 +350,31 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
     elif action_type == 'run':
         tool_map = {'ping': do_ping, 'traceroute': do_traceroute, 'nmap': do_nmap, 'dig': do_dig, 'whois': do_whois}
         if action_name in tool_map:
-            await query.edit_message_text(_("⏳ Ejecutando `{action}` en `{param}` en segundo plano...").format(action=action_name, param=param), parse_mode='Markdown')
-            result = await asyncio.to_thread(tool_map[action_name], param, _)
+            # --- MODIFICADO: Añadida validación de entrada ---
+            if not is_valid_target(param):
+                await query.edit_message_text(_("❌ El objetivo '{param}' no es válido.").format(param=param))
+                return
+            
+            # --- MODIFICADO: Añadido control de concurrencia para tareas pesadas ---
+            heavy_tasks = ['nmap', 'traceroute']
+            if action_name in heavy_tasks:
+                if HEAVY_TASK_LOCK.locked():
+                    await query.answer(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."), show_alert=True)
+                    return
+                async with HEAVY_TASK_LOCK:
+                    await query.edit_message_text(_("⏳ Ejecutando `{action}` en `{param}`... (Puede tardar)").format(action=action_name, param=param), parse_mode='Markdown')
+                    result = await asyncio.to_thread(tool_map[action_name], param, _)
+            else:
+                await query.edit_message_text(_("⏳ Ejecutando `{action}` en `{param}`...").format(action=action_name, param=param), parse_mode='Markdown')
+                result = await asyncio.to_thread(tool_map[action_name], param, _)
+                
             await query.edit_message_text(result, parse_mode='Markdown', reply_markup=dynamic_host_keyboard(action_name, _))
 
         elif action_name == 'shell':
             await query.edit_message_text(_("🚀 Ejecutando script de Shell '{param}'...").format(param=param), parse_mode='Markdown')
             salida = await asyncio.to_thread(run_shell_script, param, _)
             await query.edit_message_text(salida, parse_mode='Markdown', reply_markup=dynamic_script_keyboard('shell', _))
-            
+
         elif action_name == 'python':
             await query.edit_message_text(_("🐍 Ejecutando script de Python '{param}'...").format(param=param), parse_mode='Markdown')
             salida = await asyncio.to_thread(run_python_script, param, _)
@@ -400,9 +429,14 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         salida = await asyncio.to_thread(get_cron_tasks, _)
         await query.edit_message_text(salida, parse_mode='Markdown', reply_markup=admin_menu_keyboard(_))
 
+    # --- MODIFICADO: Añadido control de concurrencia para backups ---
     elif action_type == 'backup' and action_name == 'run':
-        await query.edit_message_text(_("⏳ Ejecutando backup '{script}' en segundo plano...").format(script=param), parse_mode='Markdown')
-        resultado = await asyncio.to_thread(run_backup_script, param, _)
+        if HEAVY_TASK_LOCK.locked():
+            await query.answer(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."), show_alert=True)
+            return
+        async with HEAVY_TASK_LOCK:
+            await query.edit_message_text(_("⏳ Ejecutando backup '{script}'... (Puede tardar)").format(script=param), parse_mode='Markdown')
+            resultado = await asyncio.to_thread(run_backup_script, param, _)
         await query.edit_message_text(resultado, parse_mode='Markdown', reply_markup=dynamic_backup_script_keyboard(_))
 
 
@@ -419,6 +453,11 @@ async def _handle_async_network_command(update: Update, context: ContextTypes.DE
         await update.message.reply_text(_("Uso: {use}").format(use=usage))
         return
     target = context.args[0]
+    # --- MODIFICADO: Añadida validación de entrada ---
+    if not is_valid_target(target):
+        await update.message.reply_text(_("❌ El objetivo '{target}' no es válido.").format(target=target))
+        return
+
     message_to_edit = await update.message.reply_text(f"{thinking_prefix} `{target}`...")
     result = await asyncio.to_thread(func, target, _)
     await message_to_edit.edit_text(result, parse_mode='Markdown')
@@ -429,17 +468,27 @@ async def ping_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
     await _handle_async_network_command(update, context, do_ping, "/ping <host>", _("📡 Haciendo ping a"), _)
 
+# --- MODIFICADO: Añadido control de concurrencia ---
 @authorized_only
 @rate_limit_and_deduplicate()
 async def traceroute_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    await _handle_async_network_command(update, context, do_traceroute, "/traceroute <host>", _("🗺️ Ejecutando traceroute a"), _)
+    if HEAVY_TASK_LOCK.locked():
+        await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
+        return
+    async with HEAVY_TASK_LOCK:
+        await _handle_async_network_command(update, context, do_traceroute, "/traceroute <host>", _("🗺️ Ejecutando traceroute a"), _)
 
+# --- MODIFICADO: Añadido control de concurrencia ---
 @authorized_only
 @rate_limit_and_deduplicate()
 async def nmap_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     _ = setup_translation(context)
-    await _handle_async_network_command(update, context, do_nmap, "/nmap <host>", _("🔬 Ejecutando Nmap a"), _)
+    if HEAVY_TASK_LOCK.locked():
+        await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
+        return
+    async with HEAVY_TASK_LOCK:
+        await _handle_async_network_command(update, context, do_nmap, "/nmap <host>", _("🔬 Ejecuturando Nmap a"), _)
 
 @authorized_only
 @rate_limit_and_deduplicate()
@@ -473,6 +522,7 @@ async def processes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def systeminfo_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await _handle_async_command(update, context, get_system_info_text, "ℹ️ Obteniendo información del sistema...")
 
+# --- MODIFICADO: Añadido control de concurrencia ---
 @authorized_only
 @rate_limit_and_deduplicate()
 async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -480,15 +530,22 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         available_logs = ", ".join(cargar_configuracion().get("allowed_logs", {}).keys())
         await update.message.reply_text(_("Uso: `/logs <alias> [líneas]` o `/logs search <alias> <patrón>`\nDisponibles: `{logs}`").format(logs=available_logs), parse_mode='Markdown'); return
-    
-    thinking_message = await update.message.reply_text("📜 Buscando en logs...")
+
     if context.args[0] == 'search':
         if len(context.args) < 3:
-            await thinking_message.edit_text(_("Uso: `/logs search <alias> <patrón>`"), parse_mode='Markdown'); return
-        result = await asyncio.to_thread(search_log, context.args[1], " ".join(context.args[2:]), _)
+            await update.message.reply_text(_("Uso: `/logs search <alias> <patrón>`"), parse_mode='Markdown'); return
+        
+        if HEAVY_TASK_LOCK.locked():
+            await update.message.reply_text(_("⏳ Hay otra tarea pesada en ejecución. Por favor, espera."))
+            return
+        async with HEAVY_TASK_LOCK:
+            thinking_message = await update.message.reply_text("📜 Buscando en logs... (Puede tardar)")
+            result = await asyncio.to_thread(search_log, context.args[1], " ".join(context.args[2:]), _)
     else:
+        thinking_message = await update.message.reply_text("📜 Obteniendo logs...")
         num_lines = int(context.args[1]) if len(context.args) > 1 and context.args[1].isdigit() else 20
         result = await asyncio.to_thread(get_log_lines, context.args[0], num_lines, _)
+    
     await thinking_message.edit_text(result, parse_mode='Markdown')
 
 @authorized_only
@@ -497,7 +554,7 @@ async def docker_command_handler(update: Update, context: ContextTypes.DEFAULT_T
     _ = setup_translation(context)
     if not context.args:
         await update.message.reply_text(_("Uso: `/docker <ps|logs|restart> [contenedor] [líneas]`")); return
-    
+
     thinking_message = await update.message.reply_text("🐳 Procesando comando docker...")
     action, container, lines = context.args[0], (context.args[1] if len(context.args) > 1 else None), (int(context.args[2]) if len(context.args) > 2 and context.args[2].isdigit() else 20)
     result = await asyncio.to_thread(docker_command, action, _, container, lines)
@@ -521,7 +578,7 @@ async def ask_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     model_name = cargar_configuracion().get("gemini_api", {}).get("flash_model")
     if not model_name: await update.message.reply_text(_("❌ El modelo 'flash' no está configurado.")); return
     if not context.args: await update.message.reply_text(_("Uso: /ask <tu pregunta>\n(Modelo: {model})").format(model=model_name)); return
-    
+
     thinking_message = await update.message.reply_text(_("🤔 Pensando con Gemini Flash..."))
     result = await asyncio.to_thread(ask_gemini_model, " ".join(context.args), model_name, _)
     await thinking_message.edit_text(result, parse_mode='Markdown')
@@ -533,7 +590,7 @@ async def askpro_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     model_name = cargar_configuracion().get("gemini_api", {}).get("pro_model")
     if not model_name: await update.message.reply_text(_("❌ El modelo 'pro' no está configurado.")); return
     if not context.args: await update.message.reply_text(_("Uso: /askpro <pregunta compleja>\n(Modelo: {model})").format(model=model_name)); return
-    
+
     thinking_message = await update.message.reply_text(_("🧠 Pensando con Gemini Pro... (puede tardar)"))
     result = await asyncio.to_thread(ask_gemini_model, " ".join(context.args), model_name, _)
     await thinking_message.edit_text(result, parse_mode='Markdown')
@@ -545,16 +602,16 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     model_name = cargar_configuracion().get("gemini_api", {}).get("flash_model")
     if not model_name: await update.message.reply_text(_("❌ El modelo 'flash' no está configurado.")); return
     if len(context.args) < 2: await update.message.reply_text(_("Uso: /analyze <recurso> <pregunta...>\nRecursos: `status`, `resources`, `processes`, `disk`")); return
-    
+
     resource, question = context.args[0].lower(), " ".join(context.args[1:])
     thinking_message = await update.message.reply_text(_("📊 Obteniendo datos para el análisis..."))
-    
+
     source_data_map = {"status": get_status_report_text, "resources": get_resources_text, "processes": get_processes_text, "disk": get_disk_usage_text}
     if resource not in source_data_map:
         await thinking_message.edit_text(_("❌ Recurso no válido.")); return
-    
+
     source_data = await asyncio.to_thread(source_data_map[resource], _)
-    
+
     await thinking_message.edit_text(_("🧠 Analizando datos con Gemini flash..."))
     final_prompt = f"Eres un experto SRE con 20 años de experiencia. Analiza los siguientes datos de un servidor Linux y responde a la pregunta del usuario de forma clara y concisa, ofreciendo recomendaciones.\n\n--- DATOS ---\n{source_data}\n\n--- PREGUNTA ---\n{question}"
     result = await asyncio.to_thread(ask_gemini_model, final_prompt, model_name, _)
@@ -568,17 +625,25 @@ async def fail2ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text(_("Uso: `/fail2ban <status|unban> [IP]`"))
         return
-
+    
+    # --- MODIFICADO: Añadida validación de entrada para la IP ---
     subcommand = context.args[0].lower()
+    if subcommand == 'unban':
+        if len(context.args) < 2:
+            await update.message.reply_text(_("Uso: `/fail2ban unban <IP>`"))
+            return
+        ip_address = context.args[1]
+        # Una validación simple para IPs
+        if not re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$", ip_address):
+            await update.message.reply_text(_("❌ Formato de IP no válido."))
+            return
+
     thinking_message = await update.message.reply_text(_("🛡️ Procesando comando Fail2Ban..."))
 
     if subcommand == 'status':
         result = await asyncio.to_thread(fail2ban_status, _)
         await thinking_message.edit_text(result, parse_mode='Markdown')
     elif subcommand == 'unban':
-        if len(context.args) < 2:
-            await thinking_message.edit_text(_("Uso: `/fail2ban unban <IP>`"))
-            return
         ip_address = context.args[1]
         result = await asyncio.to_thread(fail2ban_unban, ip_address, _)
         await thinking_message.edit_text(result, parse_mode='Markdown')
@@ -589,9 +654,9 @@ async def fail2ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def periodic_log_check(context: ContextTypes.DEFAULT_TYPE):
     _ = get_system_translator()
     logging.info("Ejecutando comprobación de monitorización de logs...")
-    
+
     alerts = await asyncio.to_thread(check_watched_logs, _)
-    
+
     if alerts:
         users_config = cargar_usuarios()
         super_admin_id = users_config.get("super_admin_id")
