@@ -31,27 +31,17 @@ def authorized_only(func):
     async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
         _ = setup_translation(context)
         user_id = update.effective_user.id
-
-        # --- INICIO DE MODIFICACIÓN DE DIAGNÓSTICO ---
-        logging.info(f"[AUTH_CHECK] Iniciando comprobación para el usuario ID: {user_id}")
-
         users_config = cargar_usuarios()
-        authorized_list = users_config.get("authorized_users", [])
-
-        logging.info(f"[AUTH_CHECK] Lista de usuarios autorizados cargada: {authorized_list}")
-        # --- FIN DE MODIFICACIÓN DE DIAGNÓSTICO ---
-
-        if user_id not in authorized_list:
-            logging.warning(f"[AUTH_CHECK] ACCESO DENEGADO para el usuario ID: {user_id}. No está en la lista.") # Modificamos este log también
+        if user_id not in users_config.get("authorized_users", []):
+            logging.warning(f"Acceso no autorizado denegado para el usuario con ID: {user_id}")
             if update.callback_query:
                 await update.callback_query.answer(_("❌ No tienes permiso."), show_alert=True)
             else:
                 await update.message.reply_text(_("❌ No tienes permiso para usar este bot."))
             return
-
-        logging.info(f"[AUTH_CHECK] ACCESO PERMITIDO para el usuario ID: {user_id}")
         return await func(update, context, *args, **kwargs)
     return wrapped
+
 def super_admin_only(func):
     @wraps(func)
     async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
@@ -892,6 +882,7 @@ async def handle_file_upload(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Generar un timestamp para el nombre del fichero
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         
+        # --- LA CORRECCIÓN CLAVE ESTÁ AQUÍ ---
         # Usamos 'filename_root' en lugar de '_' para evitar sobrescribir la función de traducción.
         filename_root, extension = os.path.splitext(original_name)
         

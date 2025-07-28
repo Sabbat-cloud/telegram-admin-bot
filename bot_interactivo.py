@@ -9,10 +9,9 @@ import html
 import traceback
 import os
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, ConversationHandler
-
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, PicklePersistence, ConversationHandler
 from telegram.constants import ParseMode
-from custom_persistence import JsonPersistence
+
 from core_functions import cargar_configuracion, cargar_usuarios
 from bot_handlers import (
     start_command, help_command, button_callback_handler,
@@ -60,12 +59,15 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         await context.bot.send_message(chat_id=super_admin_id, text=message, parse_mode=ParseMode.HTML)
 
 
-def main(token: str) -> None:
+def main() -> None:
     """Inicia el bot, registra los manejadores y comienza a escuchar."""
     config = cargar_configuracion()
+    token = os.getenv("TELEGRAM_TOKEN")
+    if not token:
+        logger.critical("No se encontró el token en la variable de entorno TELEGRAM_TOKEN. Saliendo.")
+        sys.exit(1)
 
-    persistence = JsonPersistence(filepath="bot_persistence.json")
-    #persistence = PicklePersistence(filepath="bot_persistence.pickle")
+    persistence = PicklePersistence(filepath="bot_persistence.pickle")
     application = Application.builder().token(token).persistence(persistence).build()
     application.add_error_handler(error_handler)
 
@@ -145,16 +147,4 @@ def main(token: str) -> None:
     application.run_polling()
 
 if __name__ == "__main__":
-    # Importamos la nueva función aquí
-    from core_functions import cargar_secretos
-
-    secretos = cargar_secretos()
-
-    # Comprobamos si el diccionario de secretos se ha cargado
-    # y si contiene la clave que necesitamos.
-    if not secretos or "TELEGRAM_TOKEN" not in secretos:
-        # El mensaje de error crítico ya se habrá mostrado desde la función
-        sys.exit(1)
-
-    # Pasamos el token leído del fichero a la función main
-    main(token=secretos["TELEGRAM_TOKEN"])
+    main()

@@ -19,22 +19,6 @@ CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'configbot.json')
 USERS_FILE = os.path.join(os.path.dirname(__file__), 'users.json')
 LOG_STATE_FILE = os.path.join(os.path.dirname(__file__), 'log_monitoring_state.json')
 
-def cargar_secretos():
-    """Carga secretos desde un fichero .env seguro."""
-    secretos = {}
-    try:
-        # Apuntamos directamente a tu fichero bot.env
-        with open('/etc/telegram-bot/bot.env', 'r') as f:
-            for line in f:
-                # Ignoramos comentarios y líneas en blanco
-                if line.strip() and not line.strip().startswith('#'):
-                    # Dividimos la línea por el primer '=' que encuentre
-                    key, value = line.strip().split('=', 1)
-                    secretos[key] = value
-        return secretos
-    except Exception as e:
-        logging.critical(f"ERROR CRÍTICO: No se pudo cargar el fichero de secretos '/etc/telegram-bot/bot.env'. Error: {e}")
-        return None
 # --- CARGA Y GUARDADO DE CONFIGURACIÓN Y USUARIOS ---
 def cargar_configuracion():
     try:
@@ -50,9 +34,7 @@ def cargar_configuracion():
 def cargar_usuarios():
     try:
         with open(USERS_FILE, 'r') as f:
-            users_data = json.load(f)
-            logging.info(f"[LOAD_USERS] Fichero 'users.json' cargado. Super admin: {users_data.get('super_admin_id')}")
-            return users_data
+            return json.load(f)
     except FileNotFoundError:
         logging.error(f"Error: El archivo de usuarios '{USERS_FILE}' no se encontró.")
         return {}
@@ -255,43 +237,20 @@ def get_log_lines(log_alias: str, num_lines: int, _) -> str:
         return _("❌ El log '{alias}' no está permitido.").format(alias=log_alias)
     return _run_command(['tail', '-n', str(num_lines), log_path], 30, _("📜 **Últimas {num_lines} líneas de `{alias}`:**").format(num_lines=num_lines, alias=log_alias), _("Error al leer el log {alias}").format(alias=log_alias), _)
 
-
-def is_safe_grep_pattern(pattern: str) -> bool:
-    """
-    Valida que un patrón de búsqueda para grep sea seguro.
-    """
-    if not pattern or len(pattern) > 100: # Limita la longitud
-        return False
-    # Patrón que prohíbe metacaracteres complejos de regex como `+` o `*` que pueden causar ReDoS.
-    # Permite solo caracteres alfanuméricos, espacios, puntos, guiones, etc.
-    if re.search(r'[\\*+?(){}|\[\]\^$]', pattern):
-         logging.warning(f"Patrón de búsqueda bloqueado por contener metacaracteres peligrosos: {pattern}")
-         return False
-    return True
-
-# Se ha modificado la función search_log para hacerla segura.
 def search_log(log_alias: str, pattern: str, _) -> str:
-    if not is_safe_grep_pattern(pattern):
-        return _("❌ El patrón de búsqueda contiene caracteres no permitidos o es demasiado complejo.")    
+    config = cargar_configuracion()
+    log_path = config.get("allowed_logs", {}).get(log_alias)
+    if not log_path:
+        return _("❌ El log '{alias}' no está permitido.").format(alias=log_alias)
     try:
-        # Se añade el argumento '--' antes del patrón del usuario.
-        # Esto le indica a 'grep' que todo lo que sigue es un argumento posicional (el patrón de búsqueda)
-        # y no una opción, previniendo así la inyección de argumentos como '-f /etc/passwd'.
-        command = ['grep', '-i', '--', pattern, log_path]
-        
-        # Mantenemos un timeout generoso, ya que la búsqueda puede ser lenta.
-        proc = subprocess.run(command, capture_output=True, text=True, timeout=60)
-        
+        # Se mantiene un timeout generoso (60s) porque grep puede tardar, pero se controlará la concurrencia.
+        proc = subprocess.run(['grep', '-i', pattern, log_path], capture_output=True, text=True, timeout=60)
         if proc.returncode == 1:
             return _("🔍 No se encontraron coincidencias para '{pattern}' en `{alias}`.").format(pattern=pattern, alias=log_alias)
-        
         output = proc.stdout
         if len(output) > 4000:
             output = output[:3900] + "\n... (salida truncada)"
-            
         return _("🔍 **Resultados para '{pattern}' en `{alias}`:**\n```\n{output}\n```").format(pattern=pattern, alias=log_alias, output=output)
-    except subprocess.TimeoutExpired:
-        return _("❌ Error: Timeout (60s) durante la búsqueda en el log `{alias}`.").format(alias=log_alias)
     except Exception as e:
         return _("❌ Error inesperado al buscar en {alias}: {error}").format(alias=log_alias, error=e)
 
