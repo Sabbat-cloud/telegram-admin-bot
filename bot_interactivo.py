@@ -1,18 +1,20 @@
-# BOT INTERACTIVO PARA TELEGRAM
-# VERSION: 2.1
-# AUTHOR: Oscar Gimenez Blasco & Gemini para menus y soporte LANG (quien dijo que la IA no ayuda??)
+# bot_interactivo.py
+# MODIFICADO: Punto de entrada principal. Configura e inicia el bot.
+# VERSION: 2.5 
+# AUTHOR: Oscar Gimenez Blasco & Gemini para LANG, menus, el README.md y la p..a identacion en python.
 
 import logging
 import sys
-import json
 import html
 import traceback
-import os
+
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, PicklePersistence, ConversationHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 
-from core_functions import cargar_configuracion, cargar_usuarios
+# Importamos desde los nuevos módulos
+from state import SECRETS, CONFIG, USERS_DATA, PERSISTENCE_FILE
+from custom_persistence import JsonPersistence
 from bot_handlers import (
     start_command, help_command, button_callback_handler,
     ping_command, traceroute_command, nmap_command, dig_command, whois_command,
@@ -20,13 +22,13 @@ from bot_handlers import (
     logs_command, docker_command_handler, analyze_command,
     adduser_command, deluser_command, listusers_command,
     handle_file_upload, get_file_command,
-    periodic_monitoring_check,
+    periodic_monitoring_check, periodic_log_check,
     fortune_command,
     ask_command, askpro_command,
     remind_command, reminders_list_command, reminders_delete_command,
     language_command,
     start_weather_conversation, receive_weather_location, cancel_conversation, AWAITING_LOCATION,
-    fail2ban_command, periodic_log_check
+    fail2ban_command
 )
 
 # --- CONFIGURACIÓN DE LOGGING ---
@@ -41,36 +43,31 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
-
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Manejador de errores global. Notifica al super admin."""
     logger.error("Exception while handling an update:", exc_info=context.error)
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
     tb_string = "".join(tb_list)
     message = (f"Ha ocurrido una excepción:\n<pre>{html.escape(tb_string)}</pre>")
-    max_length = 4096
-    if len(message) > max_length:
-        message = message[:max_length - 100] + "\n... (mensaje truncado)</pre>"
 
-    users_config = cargar_usuarios()
-    super_admin_id = users_config.get("super_admin_id")
+    # Trunca el mensaje si es demasiado largo para Telegram
+    if len(message) > 4096:
+        message = message[:4000] + "\n... (mensaje truncado)</pre>"
+
+    super_admin_id = USERS_DATA.get("super_admin_id")
     if super_admin_id:
         if isinstance(update, Update) and update.effective_chat:
             await context.bot.send_message(chat_id=update.effective_chat.id, text="🤖 Vaya, algo ha salido mal. He notificado al administrador.")
         await context.bot.send_message(chat_id=super_admin_id, text=message, parse_mode=ParseMode.HTML)
 
 
-def main() -> None:
+def main(token: str) -> None:
     """Inicia el bot, registra los manejadores y comienza a escuchar."""
-    config = cargar_configuracion()
-    token = os.getenv("TELEGRAM_TOKEN")
-    if not token:
-        logger.critical("No se encontró el token en la variable de entorno TELEGRAM_TOKEN. Saliendo.")
-        sys.exit(1)
-
-    persistence = PicklePersistence(filepath="bot_persistence.pickle")
+    persistence = JsonPersistence(filepath=PERSISTENCE_FILE)
     application = Application.builder().token(token).persistence(persistence).build()
     application.add_error_handler(error_handler)
 
+    # --- REGISTRO DE MANEJADORES ---
     # Comandos principales
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
@@ -123,28 +120,29 @@ def main() -> None:
         fallbacks=[CommandHandler('cancel', cancel_conversation)]
     )
     application.add_handler(weather_conv_handler)
-
-    # Manejador de botones (debe ir después de las conversaciones)
+    
+    # Manejador de botones (debe ir después de las conversacione))
     application.add_handler(CallbackQueryHandler(button_callback_handler))
 
     # --- TAREAS PERIÓDICAS (Job Queue) ---
     job_queue = application.job_queue
 
-    # Tarea 1: Monitorización de umbrales (CPU/Disco)
-    check_interval = config.get("monitoring_thresholds", {}).get("check_interval_minutes", 5) * 60
-    if check_interval > 0:
-        job_queue.run_repeating(periodic_monitoring_check, interval=check_interval, first=10)
-        logger.info(f"Tarea de monitorización de umbrales configurada cada {check_interval/60} minutos.")
+    # Tarea de monitorización de umbrales
+    threshold_config = CONFIG.get("monitoring_thresholds", {})
+    if (interval := threshold_config.get("check_interval_minutes", 0) * 60) > 0:
+        job_queue.run_repeating(periodic_monitoring_check, interval=interval, first=10)
+        logger.info(f"Tarea de monitorización de umbrales configurada cada {interval/60} minutos.")
 
-    # Tarea 2: Monitorización activa de logs
-    log_check_config = config.get("log_monitoring", {})
-    if log_check_config.get("enabled", False):
-        log_interval = log_check_config.get("check_interval_seconds", 60)
-        job_queue.run_repeating(periodic_log_check, interval=log_interval, first=15)
-        logger.info(f"Tarea de monitorización de logs configurada cada {log_interval} segundos.")
+    # Tarea de monitorización de logs
+    log_config = CONFIG.get("log_monitoring", {})
+    if log_config.get("enabled", False) and (interval := log_config.get("check_interval_seconds", 0)) > 0:
+        job_queue.run_repeating(periodic_log_check, interval=interval, first=15)
+        logger.info(f"Tarea de monitorización de logs configurada cada {interval} segundos.")
 
     logger.info("El bot se está iniciando...")
     application.run_polling()
 
+
 if __name__ == "__main__":
-    main()
+    # Ahora el token se obtiene del módulo de estado que ya lo ha validado
+    main(token=SECRETS["TELEGRAM_TOKEN"])
