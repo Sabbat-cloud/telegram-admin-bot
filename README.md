@@ -65,8 +65,8 @@ Follow these steps to configure and launch your own bot.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/your-repository.git
-cd your-repository
+git clone https://github.com/Sabbat-cloud/telegram-admin-bot
+cd telegram-admin-bot
 
 # Create and activate a virtual environment
 python -m venv venv
