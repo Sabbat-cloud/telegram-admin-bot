@@ -1,135 +1,138 @@
-# Bot de Administración de Servidores para Telegram
+# SysAdmin Telegram Bot
 
-[**Español**] | [English](README.md)
+Un potente y modular bot de Telegram para la administración y monitorización de servidores, escrito en Python. Integra herramientas de red, gestión de Docker, seguridad con Fail2Ban y capacidades de IA a través de la API de Gemini de Google.
 
-Un bot de Telegram potente y seguro, escrito en Python, diseñado para monitorizar y administrar servidores Linux directamente desde tu móvil. Integra herramientas de sistema, utilidades de red, gestión de servicios, Docker, Fail2Ban y la API de Gemini de Google para análisis inteligente.
 
----
+## ✨ Características Principales
 
-## ✨ Características
+Este bot está diseñado para ser una navaja suiza para administradores de sistemas, ofreciendo una amplia gama de funcionalidades accesibles desde cualquier lugar a través de Telegram.
 
-- **💻 Monitorización del Sistema**:
-  - Estado general de servicios y puertos (`/status`).
-  - Uso de recursos en tiempo real (CPU, RAM, Carga Media) (`/resources`).
-  - Uso de disco (`/disk`).
-  - Listado de procesos (`/processes`).
-  - Información del sistema y distribución (`/systeminfo`).
+### **📊 Monitorización y Estado**
+- **Menú Interactivo**: Interfaz limpia basada en botones para una fácil navegación.
+- **Estado General**: Chequea el estado (ping, puertos, SSL) de múltiples servidores definidos en la configuración.
+- **Recursos del Sistema**: Obtiene informes en tiempo real de CPU, carga media, RAM y uso de disco.
+- **Gestión de Servicios**: Comprueba, inicia, detiene y reinicia servicios del sistema (`systemd`).
+- **Visualización de Logs**: Lee las últimas líneas de logs pre-configurados y busca patrones dentro de ellos.
 
-- **🛡️ Seguridad y Administración**:
-  - **Ejecución Segura de Scripts**: Ejecuta scripts `.sh` y `.py` pre-configurados, con verificación de integridad mediante hash SHA256 para prevenir ejecuciones no autorizadas.
-  - **Gestión de Servicios**: Inicia, para, reinicia y comprueba el estado de servicios del sistema (ej. `nginx`, `mysql`) con `systemctl`.
-  - **Gestión de Fail2Ban**: Comprueba el estado de las jaulas y desbloquea IPs directamente desde el bot.
-  - **Gestión de Tareas Cron**: Visualiza las tareas programadas.
-  - **Gestión de Usuarios**: Sistema de autorización con un super administrador y usuarios autorizados.
+### **🛠️ Administración y Herramientas**
+- **Ejecución de Scripts**: Ejecuta de forma segura scripts `shell` (.sh) y `python` (.py) pre-autorizados.
+- **Gestión de Docker**: Lista contenedores activos, visualiza sus logs y los reinicia.
+- **Herramientas de Red**: Ejecuta `ping`, `traceroute`, `nmap`, `dig` y `whois` sobre objetivos definidos.
+- **Gestión de Backups**: Lanza scripts de respaldo directamente desde el bot.
+- **Visualización de Cron**: Muestra las tareas programadas (`crontab`) del usuario del bot.
 
-- **🐳 Gestión de Docker**:
-  - Lista los contenedores activos (`docker ps`).
-  - Reinicia contenedores permitidos.
-  - Visualiza los logs de un contenedor.
+### **🛡️ Seguridad**
+- **Control de Acceso**: Sistema de autorización multinivel con un `super_admin_id` y una lista de `authorized_users`.
+- **Integración con Fail2Ban**: Comprueba el estado de las jaulas y permite desbloquear direcciones IP.
+- **Sellado de Scripts**: Un mecanismo de seguridad que almacena y verifica el hash `SHA256` de cada script antes de ejecutarlo, impidiendo la ejecución de código modificado sin autorización.
+- **Validación de Entradas**: Sanea y valida todas las entradas del usuario para prevenir ataques (ej. path traversal, inyección de comandos).
 
-- **🌐 Herramientas de Red**:
-  - `ping`, `traceroute`, `nmap -A`, `dig`, `whois`.
+### **🤖 Integración con IA (Google Gemini)**
+- **/ask**: Realiza preguntas de propósito general a un modelo rápido (Gemini Flash).
+- **/askpro**: (Solo Super Admin) Realiza consultas complejas a un modelo más avanzado (Gemini Pro).
+- **/analyze**: Pide a la IA que analice datos del sistema (`status`, `resources`, `disk`) y ofrezca un diagnóstico o recomendaciones.
 
-- **🤖 Integración con IA (Google Gemini)**:
-  - `/ask`: Realiza consultas rápidas al modelo Gemini Flash.
-  - `/askpro`: Realiza consultas complejas al modelo Gemini Pro (solo super admin).
-  - `/analyze`: Pide a la IA que analice los datos de monitorización y ofrezca recomendaciones.
-
-- **📁 Gestión de Archivos**:
-  - Sube archivos e imágenes directamente al servidor a través del chat.
-  - Descarga archivos del servidor al chat con el comando `/get`.
-
-- **🔔 Alertas y Utilidades**:
-  - Monitorización periódica de logs con alertas por patrones.
-  - Alertas por umbrales de CPU y disco.
-  - Sistema de recordatorios (`/remind`).
-  - Soporte multi-idioma (Español e Inglés).
+### **⚙️ Utilidades y Personalización**
+- **Gestión de Archivos**: Sube archivos y fotos al servidor y descarga archivos desde directorios pre-configurados.
+- **Multilenguaje**: Soporte para múltiples idiomas (español e inglés por defecto) gracias a `gettext`.
+- **Recordatorios**: Establece recordatorios (`/remind "texto" in 1d 2h`) con un sistema de cola de trabajos.
+- **Persistencia**: Guarda el idioma seleccionado por el usuario y otros datos entre reinicios del bot.
+- **Otras Utilidades**: Incluye comandos divertidos como `/fortune` y una consulta de tiempo.
 
 ---
 
 ## 🚀 Instalación y Puesta en Marcha
 
-#### 1. Requisitos Previos
-- Un servidor Linux (probado en Debian/Ubuntu).
-- Python 3.10 o superior.
-- Herramientas de sistema instaladas: `ping`, `traceroute`, `nmap`, `dig`, `whois`, `fortune`, `ansiweather`.
-  ```bash
-  sudo apt update
-  sudo apt install dnsutils nmap whois fortune ansiweather
-  ```
+Sigue estos pasos para configurar y lanzar tu propio bot.
 
-#### 2. Clonar y Preparar el Entorno
+### **1. Prerrequisitos**
+- Python 3.8 o superior.
+- Un token de bot de Telegram (obtenido de [@BotFather](https://t.me/BotFather)).
+- (Opcional) Una API Key de Google Gemini.
+
+### **2. Clonar y Preparar el Entorno**
 ```bash
-# Clona el repositorio (o copia los ficheros)
-git clone [https://tu-repositorio.git](https://tu-repositorio.git)
+# Clona el repositorio
+git clone [https://github.com/tu-usuario/tu-repositorio.git](https://github.com/tu-usuario/tu-repositorio.git)
 cd tu-repositorio
 
-# (Opcional pero recomendado) Crear un entorno virtual
-python3 -m venv .venv
-source .venv/bin/activate
+# Crea y activa un entorno virtual
+python -m venv venv
+source venv/bin/activate  # En Windows: venv\Scripts\activate
 
-# Instalar dependencias de Python
+# Instala las dependencias
 pip install -r requirements.txt
 ```
 
-#### 3. Configuración de Ficheros
-Crea la siguiente estructura de directorios para los secretos:
-```bash
-sudo mkdir -p /etc/telegram-bot
-sudo chown $USER:$USER /etc/telegram-bot
+### **3. Configuración de Ficheros**
+
+El bot utiliza una configuración centralizada y segura.
+
+**a) Secretos (`/etc/telegram-bot/bot.env`)**
+
+Crea un fichero en una ruta segura (fuera del repositorio) para almacenar tus credenciales.
+
+```ini
+# /etc/telegram-bot/bot.env
+TELEGRAM_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+GEMINI_API_KEY="TuApiKeyDeGeminiOpcional"
 ```
 
-- **`bot.env`** (Fichero de secretos): Crea este fichero en `/etc/telegram-bot/bot.env`.
-  ```env
-  # Token de tu bot de Telegram obtenido de @BotFather
-  TELEGRAM_TOKEN=12345:ABC...
+**b) Usuarios (`users.json`)**
 
-  # API Key de Google Gemini (opcional, para funciones de IA)
-  GEMINI_API_KEY=AIzaSy...
-  ```
+Crea este fichero en el directorio principal del bot para definir quién puede usarlo.
 
-- **`users.json`**: Coloca este fichero en el mismo directorio que el bot. Contiene los IDs de los usuarios autorizados.
-  ```json
-  {
-    "super_admin_id": 123456789,
-    "authorized_users": [
-      123456789,
-      987654321
-    ]
-  }
-  ```
-
-- **`configbot.json`**: Este es el fichero de configuración principal. Revísalo y ajústalo a tus necesidades (rutas de scripts, servicios permitidos, etc.).
-
-#### 4. Configuración de Seguridad
-
-- **Permisos de `sudo`**: Para que el bot pueda reiniciar servicios y usar Docker sin contraseña, añade una regla con `sudo visudo`:
-  ```sudoers
-  # Reemplaza 'tu_usuario' por el usuario que ejecutará el bot
-  tu_usuario ALL=(root) NOPASSWD: /bin/systemctl start *, /bin/systemctl stop *, /bin/systemctl restart *, /bin/docker restart *
-  ```
-
-- **Sellar los Scripts**: Por seguridad, el bot solo ejecutará scripts cuyo hash coincida con el guardado en `configbot.json`. Para generar o actualizar estos hashes, ejecuta:
-  ```bash
-  python3 seal_scripts.py
-  ```
-  La primera vez que configures tus scripts, o cada vez que los modifiques, debes ejecutar este comando.
-
-#### 5. Ejecutar el Bot
-Puedes ejecutarlo directamente o, preferiblemente, como un servicio de `systemd`.
-```bash
-# Ejecución directa
-python3 bot_interactivo.py
+```json
+{
+  "super_admin_id": 123456789,
+  "authorized_users": [
+    123456789,
+    987654321
+  ]
+}
 ```
+> **Nota**: Puedes obtener tu ID de Telegram hablando con bots como [@userinfobot](https://t.me/userinfobot).
+
+**c) Configuración Principal (`configbot.json`)**
+
+Este es el corazón de la configuración. Adapta los scripts, servicios, servidores y otras opciones a tus necesidades. El fichero de ejemplo es un buen punto de partida.
+
+### **4. Preparar Scripts y "Sellarlos"**
+
+Por seguridad, el bot solo ejecutará scripts que hayas "sellado" previamente.
+
+1.  Coloca tus scripts `.sh` o `.py` en las rutas que has definido en `configbot.json`.
+2.  Ejecuta el script de sellado para calcular y guardar sus hashes:
+    ```bash
+    python seal_scripts.py
+    ```
+    Este proceso actualizará `configbot.json` con los hashes `sha256` de tus scripts. **Debes repetir este paso cada vez que modifiques un script.**
+
+### **5. Configurar Idiomas (Localization)**
+
+Si has añadido o modificado traducciones en los ficheros `.po` dentro del directorio `locales`:
+```bash
+# Compila los ficheros de idioma
+pybabel compile -d locales
+```
+
+### **6. Iniciar el Bot**
+```bash
+python bot_interactivo.py
+```
+¡Tu bot ya está en funcionamiento! Puedes hablar con él en Telegram. Para mantenerlo activo de forma permanente, considera usar `systemd` o `screen`.
 
 ---
 
-## 🛠️ Uso
-- Envía `/start` al bot para ver el menú principal.
-- La mayoría de las funciones son accesibles a través de los botones del menú.
-- Consulta `/help` para ver una lista completa de comandos de texto disponibles.
+## 🔐 Consideraciones de Seguridad
+
+- **Mínimo Privilegio**: Ejecuta el bot con un usuario del sistema que no sea `root` y que tenga los permisos estrictamente necesarios.
+- **Permisos `sudo`**: Si algunos comandos requieren `sudo` (como la gestión de servicios), configura `sudoers` para permitir que el usuario del bot ejecute *solo* esos comandos específicos sin contraseña.
+- **Ruta de Secretos**: Asegúrate de que el fichero `.env` esté en una ubicación segura y con permisos de lectura solo para el usuario del bot.
+- **Sellado de Scripts**: No subestimes la importancia del sellado. Es tu principal defensa contra la ejecución de código no autorizado si alguien logra acceder a la carpeta de scripts.
 
 ---
 
-## 📄 Licencia
+## License
+
 Este proyecto está bajo la Licencia MIT.

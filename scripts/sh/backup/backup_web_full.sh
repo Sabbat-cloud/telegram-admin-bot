@@ -1,1 +1,2 @@
-echo "YOUR BACKUP. REMEMBER REGENERATE HASH256"º:
+# backup web
+

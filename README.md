@@ -2,134 +2,153 @@
 
 [Español](README.es.md) | [**English**]
 
-A powerful and secure Python-based Telegram bot designed to monitor and manage Linux servers directly from your mobile device. It integrates system tools, network utilities, service management, Docker, Fail2Ban, and Google's Gemini API for intelligent analysis.
+-----
 
----
+# SysAdmin Telegram Bot
 
-## ✨ Features
+A powerful, modular Telegram bot for server administration and monitoring, written in Python. It integrates network tools, Docker management, Fail2Ban security, and AI capabilities through Google's Gemini API.
 
-- **💻 System Monitoring**:
-  - General status of services and ports (`/status`).
-  - Real-time resource usage (CPU, RAM, Load Average) (`/resources`).
-  - Disk usage (`/disk`).
-  - Process list (`/processes`).
-  - System and distribution information (`/systeminfo`).
+## ✨ Key Features
 
-- **🛡️ Security & Administration**:
-  - **Secure Script Execution**: Run pre-configured `.sh` and `.py` scripts, with SHA256 hash verification to prevent unauthorized execution.
-  - **Service Management**: Start, stop, restart, and check the status of system services (e.g., `nginx`, `mysql`) using `systemctl`.
-  - **Fail2Ban Management**: Check jail statuses and unban IPs directly from the bot.
-  - **Cron Job Management**: View scheduled tasks.
-  - **User Management**: Authorization system with a super admin and authorized users.
+This bot is designed to be a Swiss army knife for system administrators, offering a wide range of features accessible from anywhere via Telegram.
 
-- **🐳 Docker Management**:
-  - List active containers (`docker ps`).
-  - Restart allowed containers.
-  - View logs from a container.
+### 📊 Monitoring & Status
 
-- **🌐 Network Tools**:
-  - `ping`, `traceroute`, `nmap -A`, `dig`, `whois`.
+  - **Interactive Menu**: A clean, button-based interface for easy navigation.
+  - **Overall Status**: Checks the status (ping, ports, SSL) of multiple servers defined in the configuration.
+  - **System Resources**: Fetches real-time reports on CPU, average load, RAM, and disk usage.
+  - **Service Management**: Checks, starts, stops, and restarts system services (`systemd`).
+  - **Log Viewer**: Reads the latest lines from pre-configured logs and searches for patterns within them.
 
-- **🤖 AI Integration (Google Gemini)**:
-  - `/ask`: Make quick queries to the Gemini Flash model.
-  - `/askpro`: Make complex queries to the Gemini Pro model (super admin only).
-  - `/analyze`: Ask the AI to analyze monitoring data and provide recommendations.
+### 🛠️ Administration & Tools
 
-- **📁 File Management**:
-  - Upload files and images directly to the server via chat.
-  - Download files from the server to the chat using the `/get` command.
+  - **Script Execution**: Securely runs pre-authorized `shell` (.sh) and `python` (.py) scripts.
+  - **Docker Management**: Lists active containers, views their logs, and restarts them.
+  - **Network Tools**: Executes `ping`, `traceroute`, `nmap`, `dig`, and `whois` on defined targets.
+  - **Backup Management**: Triggers backup scripts directly from the bot.
+  - **Cron Viewer**: Displays the scheduled tasks (`crontab`) for the bot's user.
 
-- **🔔 Alerts & Utilities**:
-  - Periodic log monitoring with pattern-based alerts.
-  - Alerts for high CPU and disk usage thresholds.
-  - Reminder system (`/remind`).
-  - Multi-language support (Spanish & English).
+### 🛡️ Security
 
----
+  - **Access Control**: A multi-level authorization system with a `super_admin_id` and a list of `authorized_users`.
+  - **Fail2Ban Integration**: Checks the status of jails and allows for unbanning IP addresses.
+  - **Script Sealing**: A security mechanism that stores and verifies the `SHA256` hash of each script before execution, preventing unauthorized code modifications.
+  - **Input Validation**: Sanitizes and validates all user inputs to prevent attacks (e.g., path traversal, command injection).
 
-## 🚀 Setup and Installation
+### 🤖 AI Integration (Google Gemini)
 
-#### 1. Prerequisites
-- A Linux server (tested on Debian/Ubuntu).
-- Python 3.10 or higher.
-- System tools installed: `ping`, `traceroute`, `nmap`, `dig`, `whois`, `fortune`, `ansiweather`.
-  ```bash
-  sudo apt update
-  sudo apt install dnsutils nmap whois fortune ansiweather
-  ```
+  - **/ask**: Ask general-purpose questions to a fast model (Gemini Flash).
+  - **/askpro**: (Super Admin only) Ask complex queries to a more advanced model (Gemini Pro).
+  - **/analyze**: Asks the AI to analyze system data (`status`, `resources`, `disk`) and provide a diagnosis or recommendations.
 
-#### 2. Clone and Prepare the Environment
+### ⚙️ Utilities & Customization
+
+  - **File Management**: Upload files and photos to the server and download files from pre-configured directories.
+  - **Multi-language**: Support for multiple languages (Spanish and English by default) thanks to `gettext`.
+  - **Reminders**: Set reminders (`/remind "text" in 1d 2h`) with a job queue system.
+  - **Persistence**: Saves the user's selected language and other data across bot restarts.
+  - **Other Utilities**: Includes fun commands like `/fortune` and a weather forecast feature.
+
+-----
+
+## 🚀 Installation & Setup
+
+Follow these steps to configure and launch your own bot.
+
+### 1\. Prerequisites
+
+  - Python 3.8 or higher.
+  - A Telegram Bot Token (obtained from [@BotFather](https://t.me/BotFather)).
+  - (Optional) A Google Gemini API Key.
+
+### 2\. Clone and Prepare the Environment
+
 ```bash
-# Clone the repository (or copy the files)
-git clone [https://your-repository.git](https://your-repository.git)
+# Clone the repository
+git clone https://github.com/your-username/your-repository.git
 cd your-repository
 
-# (Optional but recommended) Create a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+# Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install Python dependencies
+# Install the dependencies
 pip install -r requirements.txt
 ```
 
-#### 3. File Configuration
-Create the following directory structure for secrets:
-```bash
-sudo mkdir -p /etc/telegram-bot
-sudo chown $USER:$USER /etc/telegram-bot
+### 3\. File Configuration
+
+The bot uses a centralized and secure configuration setup.
+
+**a) Secrets (`/etc/telegram-bot/bot.env`)**
+
+Create a file in a secure location (outside the repository) to store your credentials.
+
+```ini
+# /etc/telegram-bot/bot.env
+TELEGRAM_TOKEN="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+GEMINI_API_KEY="YourOptionalGeminiApiKey"
 ```
 
-- **`bot.env`** (Secrets file): Create this file at `/etc/telegram-bot/bot.env`.
-  ```env
-  # Your Telegram bot token from @BotFather
-  TELEGRAM_TOKEN=12345:ABC...
+**b) Users (`users.json`)**
 
-  # Your Google Gemini API Key (optional, for AI features)
-  GEMINI_API_KEY=AIzaSy...
-  ```
+Create this file in the bot's main directory to define who can use it.
 
-- **`users.json`**: Place this file in the same directory as the bot. It contains the IDs of authorized users.
-  ```json
-  {
-    "super_admin_id": 123456789,
-    "authorized_users": [
-      123456789,
-      987654321
-    ]
-  }
-  ```
-
-- **`configbot.json`**: This is the main configuration file. Review and adjust it to your needs (script paths, allowed services, etc.).
-
-#### 4. Security Configuration
-
-- **`sudo` Permissions**: To allow the bot to manage services and Docker without a password, add a rule using `sudo visudo`:
-  ```sudoers
-  # Replace 'your_user' with the user that will run the bot
-  your_user ALL=(root) NOPASSWD: /bin/systemctl start *, /bin/systemctl stop *, /bin/systemctl restart *, /bin/docker restart *
-  ```
-
-- **Seal Scripts**: For security, the bot will only execute scripts whose hash matches the one stored in `configbot.json`. To generate or update these hashes, run:
-  ```bash
-  python3 seal_scripts.py
-  ```
-  You must run this command the first time you set up your scripts, and every time you modify them.
-
-#### 5. Run the Bot
-You can run it directly or, preferably, as a `systemd` service.
-```bash
-# Direct execution
-python3 bot_interactivo.py
+```json
+{
+  "super_admin_id": 123456789,
+  "authorized_users": [
+    123456789,
+    987654321
+  ]
+}
 ```
 
----
+> **Note**: You can get your Telegram ID by talking to bots like [@userinfobot](https://t.me/userinfobot).
 
-## 🛠️ Usage
-- Send `/start` to the bot to see the main menu.
-- Most functions are accessible via the menu buttons.
-- Use `/help` for a complete list of available text commands.
+**c) Main Configuration (`configbot.json`)**
 
----
+This is the heart of the configuration. Adapt the scripts, services, servers, and other options to your needs. The example file is a great starting point.
 
-## 📄 License
+### 4\. Prepare and "Seal" Your Scripts
+
+For security, the bot will only execute scripts that you have previously "sealed".
+
+1.  Place your `.sh` or `.py` scripts in the paths you defined in `configbot.json`.
+2.  Run the sealing script to calculate and store their hashes:
+    ```bash
+    python seal_scripts.py
+    ```
+    This process will update `configbot.json` with the `sha256` hashes of your scripts. **You must repeat this step every time you modify a script.**
+
+### 5\. Configure Languages (Localization)
+
+If you have added or modified translations in the `.po` files inside the `locales` directory:
+
+```bash
+# Compile the language files
+pybabel compile -d locales
+```
+
+### 6\. Start the Bot
+
+```bash
+python bot_interactivo.py
+```
+
+Your bot is now running\! You can interact with it on Telegram. To keep it running permanently, consider using `systemd` or `screen`.
+
+-----
+
+## 🔐 Security Considerations
+
+  - **Least Privilege**: Run the bot as a non-root system user with only the permissions it strictly needs.
+  - **`sudo` Permissions**: If some commands require `sudo` (like service management), configure `sudoers` to allow the bot's user to run *only* those specific commands without a password.
+  - **Secrets Path**: Ensure the `.env` file is in a secure location with read permissions only for the bot's user.
+  - **Script Sealing**: Do not underestimate the importance of sealing. It is your primary defense against the execution of unauthorized code if someone gains access to the scripts folder.
+
+-----
+
+## License
+
 This project is licensed under the MIT License.

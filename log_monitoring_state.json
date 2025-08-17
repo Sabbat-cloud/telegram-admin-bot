@@ -1,10 +1,10 @@
 {
   "auth": {
-    "last_pos": 124493,
-    "inode": 43974
+    "last_pos": 43035515,
+    "inode": 6552
   },
   "nginx_error": {
-    "last_pos": 5161,
-    "inode": 393394
+    "last_pos": 250,
+    "inode": 393256
   }
 }
