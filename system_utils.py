@@ -164,3 +164,28 @@ def run_script(script_type: str, script_name: str, _):
         return f"✅ Script '{script_name}' ejecutado:\n\n--- INICIO DE LA SALIDA ---\n{output or '(Sin salida)'}\n--- FIN DE LA SALIDA ---"
     else:
         return f"❌ Error al ejecutar '{script_name}':\n\n--- INICIO DEL ERROR ---\n{output}\n--- FIN DEL ERROR ---"
+
+# --- NUEVAS FUNCIONES PARA LOS SCRIPTS EXTERNOS ---
+def run_analizador_logs(args: list, _):
+    """Ejecuta el script analizador_logs."""
+    command = ['/usr/local/bin/analizador_logs'] + args
+    success, output = _run_command(command, 120)
+    return output
+
+def run_muestra(args: list, _):
+    """Ejecuta el script muestra."""
+    command = ['/usr/local/bin/muestra'] + args
+    success, output = _run_command(command, 20)
+    return output
+
+def run_muestrared(args: list, _):
+    """Ejecuta el script muestrared."""
+    command = ['/usr/local/bin/muestrared'] + args
+    success, output = _run_command(command, 30)
+    return output
+
+def run_redes(args: list, _):
+    """Ejecuta el script redes."""
+    command = ['/usr/local/bin/redes'] + args
+    success, output = _run_command(command, 180)
+    return output

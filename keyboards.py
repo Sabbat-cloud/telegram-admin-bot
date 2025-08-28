@@ -9,6 +9,7 @@ def main_menu_keyboard(_):
         [InlineKeyboardButton(_("📊 Monitorización"), callback_data='menu:monitor')],
         [InlineKeyboardButton(_("⚙️ Administración"), callback_data='menu:admin')],
         [InlineKeyboardButton(_("🛠️ Herramientas de Red"), callback_data='menu:network_tools')],
+        [InlineKeyboardButton(_("🚀 Herramientas Avanzadas"), callback_data='menu:advanced_tools')],
         [InlineKeyboardButton(_("🔧 Utilidades"), callback_data='menu:utils')],
         [InlineKeyboardButton(_("🐳 Gestión Docker"), callback_data='menu:docker')],
         [InlineKeyboardButton(_("🛡️ Fail2Ban"), callback_data='menu:fail2ban')],
@@ -48,6 +49,16 @@ def network_tools_menu_keyboard(_):
         [InlineKeyboardButton(_("🔬 Escaneo Nmap (-A)"), callback_data='network:select_nmap')],
         [InlineKeyboardButton(_("🌐 Dig (DNS Lookup)"), callback_data='network:select_dig')],
         [InlineKeyboardButton(_("👤 Whois"), callback_data='network:select_whois')],
+        [InlineKeyboardButton(_("⬅️ Volver"), callback_data='menu:main')]
+    ])
+
+def advanced_tools_menu_keyboard(_):
+    """Menú para las nuevas herramientas avanzadas."""
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(_("📄 Analizar Logs"), callback_data='advanced:analizar_logs_info')],
+        [InlineKeyboardButton(_("ℹ️ Info de Fichero (muestra)"), callback_data='advanced:muestra_info')],
+        [InlineKeyboardButton(_("🔌 Conexiones de Red (muestrared)"), callback_data='advanced:muestrared_info')],
+        [InlineKeyboardButton(_("🌐 Herramientas de Red Avanzadas (redes)"), callback_data='advanced:redes_info')],
         [InlineKeyboardButton(_("⬅️ Volver"), callback_data='menu:main')]
     ])
 

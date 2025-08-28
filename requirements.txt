@@ -1,4 +1,8 @@
 python-telegram-bot
 psutil
 google-generativeai
+apscheduler
 Babel
+requests
+netifaces
+speedtest-cli

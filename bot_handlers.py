@@ -169,6 +169,7 @@ async def button_callback_handler(update: Update, context: ContextTypes.DEFAULT_
         'menu:main': (_("Menú Principal"), main_menu_keyboard),
         'menu:monitor': (_("Menú de Monitorización"), monitor_menu_keyboard),
         'menu:admin': (_("Menú de Administración"), admin_menu_keyboard),
+        'menu:advanced_tools': (_("Herramientas Avanzadas"), advanced_tools_menu_keyboard),
         'menu:backups': (_("📦 Gestión de Backups"), backups_menu_keyboard),
         'backups:list': (_("Selecciona el backup a ejecutar:"), dynamic_backup_script_keyboard),
         'menu:utils': (_("🔧 Menú de Utilidades"), utilities_menu_keyboard),
@@ -813,42 +814,95 @@ async def logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await thinking_message.edit_text(result, parse_mode='Markdown')
 
+# --- NUEVOS COMANDOS ---
+@authorized_only
+@rate_limit_and_deduplicate()
+async def analizador_logs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    _ = setup_translation(context)
+    if not context.args:
+        await update.message.reply_text(_("Uso: /analizar_logs <ruta_al_log> [opciones]\nUsa --help para más detalles."))
+        return
+    thinking_message = await update.message.reply_text("...")
+    result = await asyncio.to_thread(system.run_analizador_logs, context.args, _)
+    await thinking_message.edit_text(f"```\n{result}\n```", parse_mode='Markdown')
+
+@authorized_only
+@rate_limit_and_deduplicate()
+async def muestra_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    _ = setup_translation(context)
+    if not context.args:
+        await update.message.reply_text(_("Uso: /muestra <ruta_al_fichero> [opciones]"))
+        return
+    thinking_message = await update.message.reply_text("...")
+    result = await asyncio.to_thread(system.run_muestra, context.args, _)
+    await thinking_message.edit_text(f"```\n{result}\n```", parse_mode='Markdown')
+
+@authorized_only
+@rate_limit_and_deduplicate()
+async def muestrared_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    _ = setup_translation(context)
+    thinking_message = await update.message.reply_text("...")
+    result = await asyncio.to_thread(system.run_muestrared, context.args, _)
+    await thinking_message.edit_text(f"```\n{result}\n```", parse_mode='Markdown')
+
+@authorized_only
+@rate_limit_and_deduplicate()
+async def redes_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    _ = setup_translation(context)
+    if not context.args:
+        await update.message.reply_text(_("Uso: /redes <comando> [opciones]\nComandos: interfaces, scan, traceroute, velocidad"))
+        return
+    thinking_message = await update.message.reply_text("...")
+    result = await asyncio.to_thread(system.run_redes, context.args, _)
+    await thinking_message.edit_text(f"```\n{result}\n```", parse_mode='Markdown')
+
+
 def get_help_text(_):
+    # CORREGIDO: Se ha revisado y unificado el formato Markdown para evitar errores.
     return (
-        _("🤖 **Ayuda Completa del Bot**\n\n"
-          "--- **Comandos Generales** ---\n"
-          "**/start**: Muestra el menú principal.\n"
-          "**/help**: Muestra esta ayuda.\n"
-          "**/language**: Cambia el idioma.\n"
-          "**/fortune**: Muestra una galleta de la fortuna.\n\n"
-          "--- **Inteligencia Artificial (Gemini)** ---\n"
-          "**/ask** `<pregunta>`: Consulta a la IA (rápido).\n"
-          "**/analyze** `<recurso> <pregunta>`: Pide a la IA que analice datos del sistema. Recursos: `status`, `resources`, `processes`, `disk`.\n\n"
-          "--- **Monitorización** ---\n"
-          "**/resources**: Reporte de CPU, RAM y carga.\n"
-          "**/disk**: Uso de discos (`df -h`).\n"
-          "**/processes**: Lista de procesos (`ps aux`).\n"
-          "**/systeminfo**: Info del sistema.\n"
-          "**/logs** `<alias> [líneas]`: Muestra las últimas líneas de un log.\n"
-          "**/logs** `search <alias> <patrón>`: Busca en un log.\n\n"
-          "--- **Gestión  de archvos y Admin** ---\n"
-          "**/docker** `<ps|logs|restart> [contenedor]`: Gestiona Docker.\n\n"
-          "**/get** `<imagenes|ficheros> <fichero>`: Descarga un archivo del servidor.\n"
-          "*Para subir un fichero o imagen, simplemente envíalo al chat.*\n\n"
-          "--- **Herramientas de Red** ---\n"
-          "**/ping**, **/traceroute**, **/nmap**, **/dig**, **/whois** `<objetivo>`\n\n"
-          "--- **Recordatorios** ---\n"
-          "**/remind** `\"texto\" in <tiempo>`: Programa un recordatorio.\n\n"
-          "**/reminders**: Lista tus recordatorios pendientes.\n"
-          "**/delremind** `<ID>`: Borra un recordatorio.\n\n"
-          "--- **Seguridad (Solo Super Admin)** ---\n"
-          "**/fail2ban** `status`: Muestra el estado de las jaulas de Fail2Ban.\n"
-          "**/fail2ban** `unban <IP>`: Desbloquea una IP.\n\n"
-          "--- **Solo Super Admin** ---\n"
-          "**/askpro** `<pregunta>`: Consulta a la IA (avanzado).\n"
-          "**/adduser** `<user_id>`: Autoriza a un usuario.\n"
-          "**/deluser** `<user_id>`: Revoca el acceso.\n"
-          "**/listusers**: Lista usuarios autorizados.")
+        _("🤖 *Ayuda Completa del Bot*\n\n"
+          "*--- Comandos Generales ---*\n"
+          "`/start` - Muestra el menú principal.\n"
+          "`/help` - Muestra esta ayuda.\n"
+          "`/language` - Cambia el idioma.\n"
+          "`/fortune` - Muestra una galleta de la fortuna.\n\n"
+          "*--- Inteligencia Artificial (Gemini) ---*\n"
+          "`/ask <pregunta>` - Consulta a la IA (rápido).\n"
+          "`/analyze <recurso> <pregunta>` - Pide a la IA que analice datos del sistema. Recursos: `status`, `resources`, `processes`, `disk`.\n\n"
+          "*--- Monitorización ---*\n"
+          "`/resources` - Reporte de CPU, RAM y carga.\n"
+          "`/disk` - Uso de discos (`df -h`).\n"
+          "`/processes` - Lista de procesos (`ps aux`).\n"
+          "`/systeminfo` - Info del sistema.\n"
+          "`/logs <alias> [líneas]` - Muestra las últimas líneas de un log.\n"
+          "`/logs search <alias> <patrón>` - Busca en un log.\n\n"
+          "*--- Gestión y Admin ---*\n"
+          "`/docker <ps|logs|restart> [cont]` - Gestiona Docker.\n"
+          "`/get <imgs|files> <fichero>` - Descarga un archivo.\n"
+          "_(Para subir, simplemente envía el fichero al chat)_\n\n"
+          "*--- Herramientas de Red ---*\n"
+          "`/ping <objetivo>`\n"
+          "`/traceroute <objetivo>`\n"
+          "`/nmap <objetivo>`\n"
+          "`/dig <objetivo>`\n"
+          "`/whois <objetivo>`\n\n"
+          "*--- Herramientas Avanzadas---*\n"
+          "`/analizar_logs <path>` - Analiza un fichero de log.\n"
+          "`/muestra <path>` - Info detallada de un fichero.\n"
+          "`/muestrared [opts]` - Muestra conexiones de red.\n"
+          "`/redes <cmd>` - Herramientas de red avanzadas.\n\n"
+          "*--- Recordatorios ---*\n"
+          "`/remind \"texto\" in <tiempo>` - Programa un recordatorio.\n"
+          "`/reminders` - Lista tus recordatorios.\n"
+          "`/delremind <ID>` - Borra un recordatorio.\n\n"
+          "*--- Seguridad (Solo Super Admin) ---*\n"
+          "`/fail2ban status` - Estado de las jaulas de Fail2Ban.\n"
+          "`/fail2ban unban <IP>` - Desbloquea una IP.\n\n"
+          "*--- Solo Super Admin ---*\n"
+          "`/askpro <pregunta>` - Consulta a la IA (avanzado).\n"
+          "`/adduser <user_id>` - Autoriza a un usuario.\n"
+          "`/deluser <user_id>` - Revoca el acceso.\n"
+          "`/listusers` - Lista usuarios autorizados.")
     )
 
 # ... (resto de las funciones...)

@@ -28,7 +28,9 @@ from bot_handlers import (
     remind_command, reminders_list_command, reminders_delete_command,
     language_command,
     start_weather_conversation, receive_weather_location, cancel_conversation, AWAITING_LOCATION,
-    fail2ban_command
+    fail2ban_command,
+    # --- NUEVOS COMANDOS ---
+    analizador_logs_command, muestra_command, muestrared_command, redes_command
 )
 
 # --- CONFIGURACIÓN DE LOGGING ---
@@ -112,6 +114,12 @@ def main(token: str) -> None:
     # Gestión de archivos
     application.add_handler(CommandHandler("get", get_file_command))
     application.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, handle_file_upload))
+
+    # --- NUEVOS COMANDOS ---
+    application.add_handler(CommandHandler("analizar_logs", analizador_logs_command))
+    application.add_handler(CommandHandler("muestra", muestra_command))
+    application.add_handler(CommandHandler("muestrared", muestrared_command))
+    application.add_handler(CommandHandler("redes", redes_command))
 
     # Conversation Handler para el tiempo
     weather_conv_handler = ConversationHandler(

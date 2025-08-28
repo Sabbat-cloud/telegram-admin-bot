@@ -154,3 +154,17 @@ msgstr "Please enter the location you want to check, or send /cancel to abort."
 msgid "Operación cancelada."
 msgstr "Operation cancelled."
 # ... (y así sucesivamente con todos los textos, traduciendo el msgstr al inglés)
+msgid "🚀 Herramientas Avanzadas"
+msgstr "🚀 Advanced Tools"
+
+msgid "📄 Analizar Logs"
+msgstr "📄 Analyze Logs"
+
+msgid "ℹ️ Info de Fichero (muestra)"
+msgstr "ℹ️ File Info (muestra)"
+
+msgid "🔌 Conexiones de Red (muestrared)"
+msgstr "🔌 Network Connections (muestrared)"
+
+msgid "🌐 Herramientas de Red Avanzadas (redes)"
+msgstr "🌐 Advanced Network Tools (redes)"

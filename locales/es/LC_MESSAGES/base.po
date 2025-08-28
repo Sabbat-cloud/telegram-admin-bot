@@ -153,4 +153,18 @@ msgstr "Por favor, introduce la localidad que quieres consultar, o envía /cance
 
 msgid "Operación cancelada."
 msgstr "Operación cancelada."
-# ... (y así sucesivamente con todos los textos, el msgid y msgstr son iguales para español)
+
+msgid "🚀 Herramientas Avanzadas."
+msgstr "🚀 Herramientas Avanzadas."
+
+msgid "📄 Analizar Logs"
+msgstr "📄 Analizar Logs"
+
+msgid "ℹ️ Info de Fichero (muestra)"
+msgstr "ℹ️ Info de Fichero (muestra)"
+
+msgid "🔌 Conexiones de Red (muestrared)"
+msgstr "🔌 Conexiones de Red (muestrared)"
+
+msgid "🌐 Herramientas de Red Avanzadas (redes)"
+msgstr "🌐 Herramientas de Red Avanzadas (redes)"

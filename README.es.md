@@ -1,7 +1,11 @@
+# Bot de Administración de Servidores para Telegram
+
+[**Español**] | [English](README.md)
+
+Un bot de Telegram potente y seguro, escrito en Python, diseñado para monitorizar y administrar servidores Linux directamente desde tu móvil. Integra herramientas de sistema, utilidades de red, gestión de servicios, Docker, Fail2Ban y la API de Gemini de Google para análisis inteligente.
+¡Perfecto\! Es una excelente idea mantener la documentación actualizada. Refleja la profesionalidad del proyecto.
+
 # SysAdmin Telegram Bot
-
-Un potente y modular bot de Telegram para la administración y monitorización de servidores, escrito en Python. Integra herramientas de red, gestión de Docker, seguridad con Fail2Ban y capacidades de IA a través de la API de Gemini de Google.
-
 
 ## ✨ Características Principales
 
@@ -20,6 +24,7 @@ Este bot está diseñado para ser una navaja suiza para administradores de siste
 - **Herramientas de Red**: Ejecuta `ping`, `traceroute`, `nmap`, `dig` y `whois` sobre objetivos definidos.
 - **Gestión de Backups**: Lanza scripts de respaldo directamente desde el bot.
 - **Visualización de Cron**: Muestra las tareas programadas (`crontab`) del usuario del bot.
+- **Herramientas Avanzadas**: Incluye comandos para analizar logs en profundidad, inspeccionar ficheros y realizar diagnósticos de red avanzados.
 
 ### **🛡️ Seguridad**
 - **Control de Acceso**: Sistema de autorización multinivel con un `super_admin_id` y una lista de `authorized_users`.
@@ -53,7 +58,7 @@ Sigue estos pasos para configurar y lanzar tu propio bot.
 ### **2. Clonar y Preparar el Entorno**
 ```bash
 # Clona el repositorio
-git clone https://github.com/Sabbat-cloud/telegram-admin-bot
+git clone [https://github.com/Sabbat-cloud/telegram-admin-bot](https://github.com/Sabbat-cloud/telegram-admin-bot)
 cd telegram-admin-bot
 
 # Crea y activa un entorno virtual
@@ -62,7 +67,7 @@ source venv/bin/activate  # En Windows: venv\Scripts\activate
 
 # Instala las dependencias
 pip install -r requirements.txt
-```
+````
 
 ### **3. Configuración de Ficheros**
 
@@ -91,48 +96,64 @@ Crea este fichero en el directorio principal del bot para definir quién puede u
   ]
 }
 ```
+
 > **Nota**: Puedes obtener tu ID de Telegram hablando con bots como [@userinfobot](https://t.me/userinfobot).
 
 **c) Configuración Principal (`configbot.json`)**
 
-Este es el corazón de la configuración. Adapta los scripts, servicios, servidores y otras opciones a tus necesidades. El fichero de ejemplo es un buen punto de partida.
+Este es el corazón de la configuración. Adapta los servidores, logs y otras opciones a tus necesidades. Los scripts se añadirán automáticamente en el siguiente paso.
 
-### **4. Preparar Scripts y "Sellarlos"**
+### **4. Añadir y Sellar Scripts**
 
-Por seguridad, el bot solo ejecutará scripts que hayas "sellado" previamente.
+Por seguridad, el bot solo ejecutará scripts que hayas "sellado" previamente. El proceso ahora es automático:
 
-1.  Coloca tus scripts `.sh` o `.py` en las rutas que has definido en `configbot.json`.
-2.  Ejecuta el script de sellado para calcular y guardar sus hashes:
+1.  **Añade tus scripts**: Coloca tus ficheros `.sh` o `.py` en las carpetas correspondientes dentro del directorio `scripts/`.
+
+2.  **Ejecuta el script de sellado**:
+
     ```bash
     python seal_scripts.py
     ```
-    Este proceso actualizará `configbot.json` con los hashes `sha256` de tus scripts. **Debes repetir este paso cada vez que modifiques un script.**
+
+    Este comando hará dos cosas:
+
+      - **Detectará** los nuevos scripts que has añadido y los registrará automáticamente en `configbot.json`.
+      - **Calculará y guardará** el hash `sha256` de todos los scripts (nuevos y modificados).
+
+    **Debes repetir este paso cada vez que añadas o modifiques un script.**
 
 ### **5. Configurar Idiomas (Localization)**
 
 Si has añadido o modificado traducciones en los ficheros `.po` dentro del directorio `locales`:
+
 ```bash
 # Compila los ficheros de idioma
 pybabel compile -d locales
 ```
 
 ### **6. Iniciar el Bot**
+
 ```bash
 python bot_interactivo.py
 ```
-¡Tu bot ya está en funcionamiento! Puedes hablar con él en Telegram. Para mantenerlo activo de forma permanente, considera usar `systemd` o `screen`.
 
----
+¡Tu bot ya está en funcionamiento\! Puedes hablar con él en Telegram. Para mantenerlo activo de forma permanente, considera usar `systemd` o `screen`.
+
+-----
 
 ## 🔐 Consideraciones de Seguridad
 
-- **Mínimo Privilegio**: Ejecuta el bot con un usuario del sistema que no sea `root` y que tenga los permisos estrictamente necesarios.
-- **Permisos `sudo`**: Si algunos comandos requieren `sudo` (como la gestión de servicios), configura `sudoers` para permitir que el usuario del bot ejecute *solo* esos comandos específicos sin contraseña.
-- **Ruta de Secretos**: Asegúrate de que el fichero `.env` esté en una ubicación segura y con permisos de lectura solo para el usuario del bot.
-- **Sellado de Scripts**: No subestimes la importancia del sellado. Es tu principal defensa contra la ejecución de código no autorizado si alguien logra acceder a la carpeta de scripts.
+  - **Mínimo Privilegio**: Ejecuta el bot con un usuario del sistema que no sea `root` y que tenga los permisos estrictamente necesarios.
+  - **Permisos `sudo`**: Si algunos comandos requieren `sudo` (como la gestión de servicios), configura `sudoers` para permitir que el usuario del bot ejecute *solo* esos comandos específicos sin contraseña.
+  - **Ruta de Secretos**: Asegúrate de que el fichero `.env` esté en una ubicación segura y con permisos de lectura solo para el usuario del bot.
+  - **Sellado de Scripts**: No subestimes la importancia del sellado. Es tu principal defensa contra la ejecución de código no autorizado si alguien logra acceder a la carpeta de scripts.
 
----
+-----
 
 ## License
 
 Este proyecto está bajo la Licencia MIT.
+
+````
+
+---

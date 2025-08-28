@@ -10,6 +10,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 CONFIG_FILE = 'configbot.json'
 BACKUP_FILE = f'configbot.json.backup_{datetime.now().strftime("%Y%m%d%H%M%S")}'
 
+# Directorios donde se buscarán nuevos scripts.
+# Puedes añadir más rutas si organizas tus scripts de otra forma.
+SCRIPT_DIRECTORIES = [
+    'scripts/py',
+    'scripts/sh',
+    'scripts/sh/backup' # Añadido para los backups
+]
+
 def calculate_sha256(filepath):
     """Calcula el hash SHA256 de un fichero, expandiendo la ruta del usuario (~)."""
     expanded_path = os.path.expanduser(filepath)
@@ -26,10 +34,10 @@ def calculate_sha256(filepath):
         logging.error(f"Error al calcular el hash de {expanded_path}: {e}")
         return None
 
-def safe_seal_scripts():
+def discover_and_seal_scripts():
     """
-    Lee configbot.json, calcula el hash de cada script y reescribe el fichero
-    de forma segura, preservando toda la configuración existente.
+    Descubre nuevos scripts, los añade a la configuración y sella todos
+    los scripts (nuevos y existentes) con su hash SHA256.
     """
     # --- 1. Crear copia de seguridad ---
     try:
@@ -47,49 +55,82 @@ def safe_seal_scripts():
         logging.error(f"Error al leer o decodificar '{CONFIG_FILE}'. Restaura desde la copia de seguridad si es necesario.")
         return
 
-    # --- 3. Modificar solo la sección de scripts en memoria ---
-    scripts_to_update = config_data.get("scripts", {})
-    if not scripts_to_update:
-        logging.error(f"Error: No se encontró la clave 'scripts' en '{CONFIG_FILE}' o está vacía.")
-        return
+    # --- 3. Descubrir nuevos scripts ---
+    if "scripts" not in config_data:
+        config_data["scripts"] = {}
+    
+    scripts_in_config = config_data["scripts"]
+    new_scripts_found = 0
 
+    logging.info("--- Buscando nuevos scripts ---")
+    for script_dir in SCRIPT_DIRECTORIES:
+        if not os.path.isdir(script_dir):
+            logging.warning(f"El directorio '{script_dir}' no existe, se omitirá.")
+            continue
+            
+        for filename in os.listdir(script_dir):
+            if filename.endswith(".py") or filename.endswith(".sh"):
+                script_name = os.path.splitext(filename)[0]
+                
+                if script_name not in scripts_in_config:
+                    new_scripts_found += 1
+                    script_path = os.path.join(script_dir, filename)
+                    scripts_in_config[script_name] = {
+                        "path": script_path,
+                        "description": f"Script {script_name}",
+                        "sha256_hash": "" # Se calculará en el siguiente paso
+                    }
+                    logging.info(f" -> Nuevo script encontrado: '{script_name}' en '{script_path}'")
+
+    if new_scripts_found > 0:
+        logging.info(f"Se encontraron {new_scripts_found} scripts nuevos que se añadirán a la configuración.")
+    else:
+        logging.info("No se encontraron scripts nuevos.")
+
+    # --- 4. Actualizar hashes de TODOS los scripts (nuevos y existentes) ---
+    logging.info("\n--- Actualizando hashes de seguridad (sellado) ---")
     update_count = 0
-    for script_name, script_info in scripts_to_update.items():
+    for script_name, script_info in scripts_in_config.items():
         path = script_info.get("path")
         if not path:
             logging.warning(f"Saltando script '{script_name}' porque no tiene una clave 'path'.")
             continue
 
-        logging.info(f"Procesando script: '{script_name}'")
+        logging.info(f"Procesando: '{script_name}'")
         current_hash = calculate_sha256(path)
 
         if current_hash:
-            script_info['sha256_hash'] = current_hash
-            update_count += 1
-            logging.info(f" -> Hash actualizado: {current_hash[:12]}...")
+            if script_info.get("sha256_hash") != current_hash:
+                script_info['sha256_hash'] = current_hash
+                update_count += 1
+                logging.info(f" -> Hash actualizado: {current_hash[:12]}...")
+            else:
+                logging.info(" -> Hash sin cambios.")
 
-    # --- 4. Reescribir el fichero completo con los datos actualizados ---
-    if update_count > 0:
+    # --- 5. Reescribir el fichero completo con los datos actualizados ---
+    if update_count > 0 or new_scripts_found > 0:
         try:
             with open(CONFIG_FILE, 'w') as f:
-                json.dump(config_data, f, indent=2)
-            logging.info(f"\n✅ ¡Éxito! Se han actualizado los hashes de {update_count} scripts en '{CONFIG_FILE}'.")
-            logging.info("El resto de tu configuración se ha conservado intacta.")
+                json.dump(config_data, f, indent=2, sort_keys=True)
+            logging.info(f"\n✅ ¡Éxito! '{CONFIG_FILE}' actualizado.")
+            logging.info(f"   - {new_scripts_found} scripts añadidos.")
+            logging.info(f"   - {update_count} hashes actualizados.")
         except Exception as e:
             logging.error(f"¡ERROR CRÍTICO AL ESCRIBIR! No se pudo guardar el fichero '{CONFIG_FILE}'. Error: {e}")
             logging.error("Por favor, restaura el fichero desde la copia de seguridad.")
     else:
-        logging.info("\nNo se realizaron cambios. Revisa los errores o warnings anteriores.")
+        logging.info("\nNo se realizaron cambios en el fichero de configuración.")
 
 
 if __name__ == "__main__":
-    print("=========================================================")
-    print("== Script de Sellado de Seguridad (Versión Segura)     ==")
-    print("=========================================================")
-    print(f"Este script actualizará los hashes en '{CONFIG_FILE}' sin borrar el resto de la configuración.")
+    print("================================================================")
+    print("== Script de Sellado y Detección Automática de Scripts        ==")
+    print("================================================================")
+    print(f"Este script buscará nuevos scripts, los añadirá a '{CONFIG_FILE}'")
+    print("y actualizará los hashes de seguridad de todos los scripts.")
     
     try:
-        input("Pulsa Enter para continuar o CTRL+C para cancelar...")
-        safe_seal_scripts()
+        input("\nPulsa Enter para continuar o CTRL+C para cancelar...")
+        discover_and_seal_scripts()
     except KeyboardInterrupt:
         print("\nOperación cancelada por el usuario.")

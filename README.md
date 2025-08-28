@@ -2,11 +2,9 @@
 
 [Español](README.es.md) | [**English**]
 
------
+A powerful and secure Python-based Telegram bot designed to monitor and manage Linux servers directly from your mobile device. It integrates system tools, network utilities, service management, Docker, Fail2Ban, and Google's Gemini API for intelligent analysis.
 
 # SysAdmin Telegram Bot
-
-A powerful, modular Telegram bot for server administration and monitoring, written in Python. It integrates network tools, Docker management, Fail2Ban security, and AI capabilities through Google's Gemini API.
 
 ## ✨ Key Features
 
@@ -14,40 +12,41 @@ This bot is designed to be a Swiss army knife for system administrators, offerin
 
 ### 📊 Monitoring & Status
 
-  - **Interactive Menu**: A clean, button-based interface for easy navigation.
-  - **Overall Status**: Checks the status (ping, ports, SSL) of multiple servers defined in the configuration.
-  - **System Resources**: Fetches real-time reports on CPU, average load, RAM, and disk usage.
-  - **Service Management**: Checks, starts, stops, and restarts system services (`systemd`).
-  - **Log Viewer**: Reads the latest lines from pre-configured logs and searches for patterns within them.
+- **Interactive Menu**: A clean, button-based interface for easy navigation.
+- **Overall Status**: Checks the status (ping, ports, SSL) of multiple servers defined in the configuration.
+- **System Resources**: Fetches real-time reports on CPU, average load, RAM, and disk usage.
+- **Service Management**: Checks, starts, stops, and restarts system services (`systemd`).
+- **Log Viewer**: Reads the latest lines from pre-configured logs and searches for patterns within them.
 
 ### 🛠️ Administration & Tools
 
-  - **Script Execution**: Securely runs pre-authorized `shell` (.sh) and `python` (.py) scripts.
-  - **Docker Management**: Lists active containers, views their logs, and restarts them.
-  - **Network Tools**: Executes `ping`, `traceroute`, `nmap`, `dig`, and `whois` on defined targets.
-  - **Backup Management**: Triggers backup scripts directly from the bot.
-  - **Cron Viewer**: Displays the scheduled tasks (`crontab`) for the bot's user.
+- **Script Execution**: Securely runs pre-authorized `shell` (.sh) and `python` (.py) scripts.
+- **Docker Management**: Lists active containers, views their logs, and restarts them.
+- **Network Tools**: Executes `ping`, `traceroute`, `nmap`, `dig`, and `whois` on defined targets.
+- **Backup Management**: Triggers backup scripts directly from the bot.
+- **Cron Viewer**: Displays the scheduled tasks (`crontab`) for the bot's user.
+- **Advanced Tools**: Includes commands for in-depth log analysis, file inspection, and advanced network diagnostics.
 
 ### 🛡️ Security
 
-  - **Access Control**: A multi-level authorization system with a `super_admin_id` and a list of `authorized_users`.
-  - **Fail2Ban Integration**: Checks the status of jails and allows for unbanning IP addresses.
-  - **Script Sealing**: A security mechanism that stores and verifies the `SHA256` hash of each script before execution, preventing unauthorized code modifications.
-  - **Input Validation**: Sanitizes and validates all user inputs to prevent attacks (e.g., path traversal, command injection).
+- **Access Control**: A multi-level authorization system with a `super_admin_id` and a list of `authorized_users`.
+- **Fail2Ban Integration**: Checks the status of jails and allows for unbanning IP addresses.
+- **Script Sealing**: A security mechanism that stores and verifies the `SHA256` hash of each script before execution, preventing unauthorized code modifications.
+- **Input Validation**: Sanitizes and validates all user inputs to prevent attacks (e.g., path traversal, command injection).
 
 ### 🤖 AI Integration (Google Gemini)
 
-  - **/ask**: Ask general-purpose questions to a fast model (Gemini Flash).
-  - **/askpro**: (Super Admin only) Ask complex queries to a more advanced model (Gemini Pro).
-  - **/analyze**: Asks the AI to analyze system data (`status`, `resources`, `disk`) and provide a diagnosis or recommendations.
+- **/ask**: Ask general-purpose questions to a fast model (Gemini Flash).
+- **/askpro**: (Super Admin only) Ask complex queries to a more advanced model (Gemini Pro).
+- **/analyze**: Asks the AI to analyze system data (`status`, `resources`, `disk`) and provide a diagnosis or recommendations.
 
 ### ⚙️ Utilities & Customization
 
-  - **File Management**: Upload files and photos to the server and download files from pre-configured directories.
-  - **Multi-language**: Support for multiple languages (Spanish and English by default) thanks to `gettext`.
-  - **Reminders**: Set reminders (`/remind "text" in 1d 2h`) with a job queue system.
-  - **Persistence**: Saves the user's selected language and other data across bot restarts.
-  - **Other Utilities**: Includes fun commands like `/fortune` and a weather forecast feature.
+- **File Management**: Upload files and photos to the server and download files from pre-configured directories.
+- **Multi-language**: Support for multiple languages (Spanish and English by default) thanks to `gettext`.
+- **Reminders**: Set reminders (`/remind "text" in 1d 2h`) with a job queue system.
+- **Persistence**: Saves the user's selected language and other data across bot restarts.
+- **Other Utilities**: Includes fun commands like `/fortune` and a weather forecast feature.
 
 -----
 
@@ -55,17 +54,17 @@ This bot is designed to be a Swiss army knife for system administrators, offerin
 
 Follow these steps to configure and launch your own bot.
 
-### 1\. Prerequisites
+### 1. Prerequisites
 
-  - Python 3.8 or higher.
-  - A Telegram Bot Token (obtained from [@BotFather](https://t.me/BotFather)).
-  - (Optional) A Google Gemini API Key.
+- Python 3.8 or higher.
+- A Telegram Bot Token (obtained from [@BotFather](https://t.me/BotFather)).
+- (Optional) A Google Gemini API Key.
 
-### 2\. Clone and Prepare the Environment
+### 2. Clone and Prepare the Environment
 
 ```bash
 # Clone the repository
-git clone https://github.com/Sabbat-cloud/telegram-admin-bot
+git clone [https://github.com/Sabbat-cloud/telegram-admin-bot](https://github.com/Sabbat-cloud/telegram-admin-bot)
 cd telegram-admin-bot
 
 # Create and activate a virtual environment
@@ -74,7 +73,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install the dependencies
 pip install -r requirements.txt
-```
+````
 
 ### 3\. File Configuration
 
@@ -108,18 +107,26 @@ Create this file in the bot's main directory to define who can use it.
 
 **c) Main Configuration (`configbot.json`)**
 
-This is the heart of the configuration. Adapt the scripts, services, servers, and other options to your needs. The example file is a great starting point.
+This is the heart of the configuration. Adapt the servers, logs, and other options to your needs. Scripts will be added automatically in the next step.
 
-### 4\. Prepare and "Seal" Your Scripts
+### 4\. Add and Seal Scripts
 
-For security, the bot will only execute scripts that you have previously "sealed".
+For security, the bot will only execute scripts that you have previously "sealed". The process is now automated:
 
-1.  Place your `.sh` or `.py` scripts in the paths you defined in `configbot.json`.
-2.  Run the sealing script to calculate and store their hashes:
+1.  **Add your scripts**: Place your `.sh` or `.py` files into the appropriate folders within the `scripts/` directory.
+
+2.  **Run the sealing script**:
+
     ```bash
     python seal_scripts.py
     ```
-    This process will update `configbot.json` with the `sha256` hashes of your scripts. **You must repeat this step every time you modify a script.**
+
+    This command will do two things:
+
+      - **Discover** the new scripts you've added and automatically register them in `configbot.json`.
+      - **Calculate and save** the `sha256` hash for all scripts (new and modified ones).
+
+    **You must repeat this step every time you add or modify a script.**
 
 ### 5\. Configure Languages (Localization)
 
@@ -152,3 +159,6 @@ Your bot is now running\! You can interact with it on Telegram. To keep it runni
 ## License
 
 This project is licensed under the MIT License.
+
+```
+```
